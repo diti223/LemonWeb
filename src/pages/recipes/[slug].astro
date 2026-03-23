@@ -1,0 +1,69 @@
+---
+import type { PublicRecipe } from "../../domain/public-recipe.ts";
+import { recipeRepository } from "../../infrastructure/composition-root.ts";
+import RecipeLayout from "../../layouts/RecipeLayout.astro";
+import RecipeJsonLd from "../../components/RecipeJsonLd.astro";
+import RecipeHero from "../../components/RecipeHero.astro";
+import IngredientList from "../../components/IngredientList.astro";
+import InstructionList from "../../components/InstructionList.astro";
+import NutritionSummary from "../../components/NutritionSummary.astro";
+import OpenInLemonCTA from "../../components/OpenInLemonCTA.astro";
+
+export async function getStaticPaths() {
+  const recipes = await recipeRepository.listAll();
+  return recipes.map((r) => ({ params: { slug: r.slug } }));
+}
+
+const { slug } = Astro.params;
+const recipe = await recipeRepository.getBySlug(slug!);
+
+if (!recipe) {
+  return new Response(null, { status: 404, statusText: "Not Found" });
+}
+
+const canonicalUrl = recipe.canonicalUrl ?? Astro.url.href;
+---
+
+<RecipeLayout
+  title={recipe.title}
+  description={recipe.description}
+  imageUrl={recipe.imageUrl}
+  canonicalUrl={canonicalUrl}
+>
+  <RecipeJsonLd
+    title={recipe.title}
+    description={recipe.description}
+    servings={recipe.servings}
+    ingredients={recipe.ingredients}
+    instructions={recipe.instructions}
+    nutrition={recipe.nutrition}
+    imageUrl={recipe.imageUrl}
+    canonicalUrl={canonicalUrl}
+  />
+
+  <RecipeHero title={recipe.title} imageUrl={recipe.imageUrl} />
+
+  {recipe.description && (
+    <p class="mb-8 text-gray-600 leading-relaxed">{recipe.description}</p>
+  )}
+
+  {recipe.servings && (
+    <p class="mb-6 text-sm text-gray-500">Servings: {recipe.servings}</p>
+  )}
+
+  <IngredientList ingredients={recipe.ingredients} />
+  <InstructionList instructions={recipe.instructions} />
+
+  {recipe.notes.length > 0 && (
+    <section class="mb-8">
+      <h2 class="mb-3 text-xl font-semibold">Notes</h2>
+      <ul class="space-y-1.5 pl-5 list-disc text-gray-600 leading-relaxed">
+        {recipe.notes.map((note) => <li>{note}</li>)}
+      </ul>
+    </section>
+  )}
+
+  {recipe.nutrition && <NutritionSummary nutrition={recipe.nutrition} />}
+
+  <OpenInLemonCTA canonicalUrl={canonicalUrl} />
+</RecipeLayout>

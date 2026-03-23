@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "servings": {
+      "type": "number"
+    },
+    "imageUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "ingredients": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
+    "instructions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "nutrition": {
+      "type": "object",
+      "properties": {
+        "calories": {
+          "type": "number"
+        },
+        "proteins": {
+          "type": "number"
+        },
+        "fats": {
+          "type": "number"
+        },
+        "carbohydrates": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "calories",
+        "proteins",
+        "fats",
+        "carbohydrates"
+      ]
+    },
+    "canonicalUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "originalSourceUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "$schema": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "servings",
+    "ingredients",
+    "instructions",
+    "canonicalUrl"
+  ]
+}

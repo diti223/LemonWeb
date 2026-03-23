@@ -1,0 +1,14 @@
+---
+interface Props {
+  instructions: string[];
+}
+
+const { instructions } = Astro.props;
+---
+
+<section class="mb-8">
+  <h2 class="mb-3 text-xl font-semibold">Instructions</h2>
+  <ol class="space-y-3 pl-5 list-decimal text-gray-800 leading-relaxed">
+    {instructions.map((step) => <li>{step}</li>)}
+  </ol>
+</section>

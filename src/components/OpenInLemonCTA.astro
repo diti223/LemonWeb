@@ -1,0 +1,19 @@
+---
+interface Props {
+  canonicalUrl: string;
+}
+
+const { canonicalUrl } = Astro.props;
+const appStoreUrl = "https://apps.apple.com/app/lemon-nutrition/id6670605474";
+---
+
+<footer class="mt-12 border-t border-gray-100 pt-6 text-center">
+  <a
+    href={appStoreUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="inline-flex items-center gap-2 rounded-full bg-yellow-400 px-5 py-2.5 text-sm font-medium text-gray-900 transition hover:bg-yellow-300"
+  >
+    Open in Lemon
+  </a>
+</footer>

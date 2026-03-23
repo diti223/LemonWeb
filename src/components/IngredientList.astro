@@ -1,0 +1,14 @@
+---
+interface Props {
+  ingredients: { text: string }[];
+}
+
+const { ingredients } = Astro.props;
+---
+
+<section class="mb-8">
+  <h2 class="mb-3 text-xl font-semibold">Ingredients</h2>
+  <ul class="space-y-1.5 pl-5 list-disc text-gray-800">
+    {ingredients.map((item) => <li>{item.text}</li>)}
+  </ul>
+</section>

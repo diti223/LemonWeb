@@ -1,0 +1,57 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+  servings?: number;
+  ingredients: { text: string }[];
+  instructions: string[];
+  nutrition?: {
+    calories: number;
+    proteins: number;
+    fats: number;
+    carbohydrates: number;
+  };
+  imageUrl?: string;
+  canonicalUrl?: string;
+}
+
+const {
+  title,
+  description,
+  servings,
+  ingredients,
+  instructions,
+  nutrition,
+  imageUrl,
+  canonicalUrl,
+} = Astro.props;
+
+const jsonLd: Record<string, unknown> = {
+  "@context": "https://schema.org",
+  "@type": "Recipe",
+  name: title,
+};
+
+if (description) jsonLd.description = description;
+if (servings) jsonLd.recipeYield = `${servings} servings`;
+if (imageUrl) jsonLd.image = imageUrl;
+if (canonicalUrl) jsonLd.url = canonicalUrl;
+
+jsonLd.recipeIngredient = ingredients.map((i) => i.text);
+jsonLd.recipeInstructions = instructions.map((step) => ({
+  "@type": "HowToStep",
+  text: step,
+}));
+
+if (nutrition) {
+  jsonLd.nutrition = {
+    "@type": "NutritionInformation",
+    calories: `${nutrition.calories} calories`,
+    proteinContent: `${nutrition.proteins} g`,
+    fatContent: `${nutrition.fats} g`,
+    carbohydrateContent: `${nutrition.carbohydrates} g`,
+  };
+}
+---
+
+<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />

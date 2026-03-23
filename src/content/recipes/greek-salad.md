@@ -1,0 +1,29 @@
+---
+title: "Greek Salad"
+description: "A classic Mediterranean salad with fresh vegetables and feta cheese"
+servings: 2
+ingredients:
+  - text: "2 large tomatoes"
+  - text: "1 cucumber, diced"
+  - text: "100g feta cheese, crumbled"
+  - text: "50g kalamata olives"
+  - text: "1/2 red onion, thinly sliced"
+  - text: "2 tablespoons extra virgin olive oil"
+  - text: "1 tablespoon red wine vinegar"
+  - text: "1 teaspoon dried oregano"
+instructions:
+  - "Wash and cut the tomatoes into wedges. Dice the cucumber into bite-sized pieces."
+  - "Thinly slice the red onion into half-rings and add to a large bowl with the tomatoes and cucumber."
+  - "Add the kalamata olives and crumble the feta cheese over the top."
+  - "Drizzle with extra virgin olive oil and red wine vinegar."
+  - "Sprinkle with dried oregano, season with salt and pepper, and toss gently to combine."
+notes:
+  - "Best served immediately"
+  - "Add bell peppers for extra crunch"
+nutrition:
+  calories: 420
+  proteins: 14
+  fats: 32
+  carbohydrates: 18
+canonicalUrl: "https://recipes.lemonnutrition.eu/recipes/greek-salad"
+---
