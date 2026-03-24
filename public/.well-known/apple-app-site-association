@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["B9R5GK3QKM.eu.lemonnutrition.Lemon"],
+        "components": [
+          { "/": "/recipes/*" }
+        ]
+      }
+    ]
+  }
+}

@@ -6,9 +6,16 @@ interface Props {
 const { instructions } = Astro.props;
 ---
 
-<section class="mb-8">
-  <h2 class="mb-3 text-xl font-semibold">Instructions</h2>
-  <ol class="space-y-3 pl-5 list-decimal text-gray-800 leading-relaxed">
-    {instructions.map((step) => <li>{step}</li>)}
+<section class="mb-8 bg-[var(--lemon-surface)] rounded-2xl p-6">
+  <h2 class="mb-4 text-xl font-semibold text-white">Instructions</h2>
+  <ol class="space-y-4">
+    {instructions.map((step, i) => (
+      <li class="flex gap-4">
+        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--lemon-surface-tertiary)] text-sm font-semibold text-white">
+          {i + 1}
+        </span>
+        <p class="text-[var(--lemon-text)] leading-relaxed pt-0.5">{step}</p>
+      </li>
+    ))}
   </ol>
 </section>

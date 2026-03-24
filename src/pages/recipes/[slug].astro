@@ -1,5 +1,4 @@
 ---
-import type { PublicRecipe } from "../../domain/public-recipe.ts";
 import { recipeRepository } from "../../infrastructure/composition-root.ts";
 import RecipeLayout from "../../layouts/RecipeLayout.astro";
 import RecipeJsonLd from "../../components/RecipeJsonLd.astro";
@@ -7,12 +6,11 @@ import RecipeHero from "../../components/RecipeHero.astro";
 import IngredientList from "../../components/IngredientList.astro";
 import InstructionList from "../../components/InstructionList.astro";
 import NutritionSummary from "../../components/NutritionSummary.astro";
+import NotesSection from "../../components/NotesSection.astro";
 import OpenInLemonCTA from "../../components/OpenInLemonCTA.astro";
+import PrintStyles from "../../components/PrintStyles.astro";
 
-export async function getStaticPaths() {
-  const recipes = await recipeRepository.listAll();
-  return recipes.map((r) => ({ params: { slug: r.slug } }));
-}
+export const prerender = false;
 
 const { slug } = Astro.params;
 const recipe = await recipeRepository.getBySlug(slug!);
@@ -21,7 +19,7 @@ if (!recipe) {
   return new Response(null, { status: 404, statusText: "Not Found" });
 }
 
-const canonicalUrl = recipe.canonicalUrl ?? Astro.url.href;
+const canonicalUrl = recipe.canonicalUrl;
 ---
 
 <RecipeLayout
@@ -30,12 +28,13 @@ const canonicalUrl = recipe.canonicalUrl ?? Astro.url.href;
   imageUrl={recipe.imageUrl}
   canonicalUrl={canonicalUrl}
 >
+  <PrintStyles />
   <RecipeJsonLd
     title={recipe.title}
     description={recipe.description}
     servings={recipe.servings}
-    ingredients={recipe.ingredients}
-    instructions={recipe.instructions}
+    ingredientTexts={recipe.ingredientDisplayTexts}
+    instructions={[...recipe.instructions]}
     nutrition={recipe.nutrition}
     imageUrl={recipe.imageUrl}
     canonicalUrl={canonicalUrl}
@@ -44,24 +43,17 @@ const canonicalUrl = recipe.canonicalUrl ?? Astro.url.href;
   <RecipeHero title={recipe.title} imageUrl={recipe.imageUrl} />
 
   {recipe.description && (
-    <p class="mb-8 text-gray-600 leading-relaxed">{recipe.description}</p>
+    <p class="mb-8 text-[var(--lemon-text-secondary)] leading-relaxed">{recipe.description}</p>
   )}
 
   {recipe.servings && (
-    <p class="mb-6 text-sm text-gray-500">Servings: {recipe.servings}</p>
+    <p class="mb-6 text-sm text-[var(--lemon-text-secondary)]">Servings: {recipe.servings}</p>
   )}
 
-  <IngredientList ingredients={recipe.ingredients} />
-  <InstructionList instructions={recipe.instructions} />
+  <IngredientList ingredientTexts={recipe.ingredientDisplayTexts} />
+  <InstructionList instructions={[...recipe.instructions]} />
 
-  {recipe.notes.length > 0 && (
-    <section class="mb-8">
-      <h2 class="mb-3 text-xl font-semibold">Notes</h2>
-      <ul class="space-y-1.5 pl-5 list-disc text-gray-600 leading-relaxed">
-        {recipe.notes.map((note) => <li>{note}</li>)}
-      </ul>
-    </section>
-  )}
+  <NotesSection notes={[...recipe.notes]} />
 
   {recipe.nutrition && <NutritionSummary nutrition={recipe.nutrition} />}
 

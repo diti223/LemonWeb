@@ -1,14 +1,18 @@
 ---
 interface Props {
-  ingredients: { text: string }[];
+  ingredientTexts: readonly string[];
 }
 
-const { ingredients } = Astro.props;
+const { ingredientTexts } = Astro.props;
 ---
 
-<section class="mb-8">
-  <h2 class="mb-3 text-xl font-semibold">Ingredients</h2>
-  <ul class="space-y-1.5 pl-5 list-disc text-gray-800">
-    {ingredients.map((item) => <li>{item.text}</li>)}
+<section class="mb-8 bg-[var(--lemon-surface)] rounded-2xl p-6">
+  <h2 class="mb-4 text-xl font-semibold text-white">Ingredients</h2>
+  <ul class="space-y-3">
+    {ingredientTexts.map((text) => (
+      <li class="text-[var(--lemon-text)] border-b border-white/5 pb-3 last:border-0 last:pb-0">
+        {text}
+      </li>
+    ))}
   </ul>
 </section>

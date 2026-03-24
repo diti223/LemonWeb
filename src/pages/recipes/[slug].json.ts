@@ -1,10 +1,7 @@
-import type { APIRoute, GetStaticPaths } from "astro";
+import type { APIRoute } from "astro";
 import { recipeRepository } from "../../infrastructure/composition-root.ts";
 
-export const getStaticPaths: GetStaticPaths = async () => {
-  const recipes = await recipeRepository.listAll();
-  return recipes.map((r) => ({ params: { slug: r.slug } }));
-};
+export const prerender = false;
 
 export const GET: APIRoute = async ({ params }) => {
   const recipe = await recipeRepository.getBySlug(params.slug!);

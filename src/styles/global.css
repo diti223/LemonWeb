@@ -1,1 +1,29 @@
 @import "tailwindcss";
+
+:root {
+  --lemon-bg: #020202;
+  --lemon-surface: #1E1E1E;
+  --lemon-surface-tertiary: #2A2A2A;
+  --lemon-accent: #FFD100;
+  --lemon-accent-hover: #FFE45C;
+  --lemon-text: #FFFFFF;
+  --lemon-text-secondary: #9CA3AF;
+  --lemon-protein: #FF4D4F;
+  --lemon-fat: #4CAF50;
+  --lemon-carbs: #FFB300;
+}
+
+body {
+  background-color: var(--lemon-bg);
+  color: var(--lemon-text);
+}
+
+@media print {
+  body {
+    background-color: #FFFFFF;
+    color: #000000;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

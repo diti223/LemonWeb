@@ -3,7 +3,7 @@ interface Props {
   title: string;
   description?: string;
   servings?: number;
-  ingredients: { text: string }[];
+  ingredientTexts: readonly string[];
   instructions: string[];
   nutrition?: {
     calories: number;
@@ -19,7 +19,7 @@ const {
   title,
   description,
   servings,
-  ingredients,
+  ingredientTexts,
   instructions,
   nutrition,
   imageUrl,
@@ -37,7 +37,7 @@ if (servings) jsonLd.recipeYield = `${servings} servings`;
 if (imageUrl) jsonLd.image = imageUrl;
 if (canonicalUrl) jsonLd.url = canonicalUrl;
 
-jsonLd.recipeIngredient = ingredients.map((i) => i.text);
+jsonLd.recipeIngredient = [...ingredientTexts];
 jsonLd.recipeInstructions = instructions.map((step) => ({
   "@type": "HowToStep",
   text: step,

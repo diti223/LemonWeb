@@ -1,0 +1,15 @@
+---
+interface Props {
+  notes: string[];
+}
+const { notes } = Astro.props;
+---
+
+{notes.length > 0 && (
+  <section class="mb-8 bg-[var(--lemon-surface)] rounded-2xl p-6">
+    <h2 class="mb-4 text-xl font-semibold text-white">Notes</h2>
+    <ul class="space-y-2 text-[var(--lemon-text-secondary)]">
+      {notes.map((note) => <li>{note}</li>)}
+    </ul>
+  </section>
+)}

@@ -12,23 +12,26 @@ const { nutrition } = Astro.props;
 ---
 
 <section class="mb-8">
-  <h2 class="mb-3 text-xl font-semibold">Nutrition</h2>
+  <h2 class="mb-4 text-xl font-semibold text-white">Nutrition</h2>
   <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-    <div class="rounded-lg bg-gray-50 p-3 text-center">
-      <p class="text-lg font-medium">{nutrition.calories}</p>
-      <p class="text-sm text-gray-500">kcal</p>
+    <div class="rounded-xl bg-[var(--lemon-surface-tertiary)] p-4 text-center">
+      <p class="text-2xl font-bold text-white">{nutrition.calories}</p>
+      <p class="mt-1 text-sm text-[var(--lemon-text-secondary)]">kcal</p>
     </div>
-    <div class="rounded-lg bg-gray-50 p-3 text-center">
-      <p class="text-lg font-medium">{nutrition.proteins}g</p>
-      <p class="text-sm text-gray-500">Protein</p>
+    <div class="rounded-xl bg-[var(--lemon-surface-tertiary)] p-4 text-center">
+      <div class="mx-auto mb-2 h-2 w-2 rounded-full bg-[var(--lemon-protein)]"></div>
+      <p class="text-2xl font-bold text-white">{nutrition.proteins}g</p>
+      <p class="mt-1 text-sm text-[var(--lemon-text-secondary)]">Protein</p>
     </div>
-    <div class="rounded-lg bg-gray-50 p-3 text-center">
-      <p class="text-lg font-medium">{nutrition.fats}g</p>
-      <p class="text-sm text-gray-500">Fat</p>
+    <div class="rounded-xl bg-[var(--lemon-surface-tertiary)] p-4 text-center">
+      <div class="mx-auto mb-2 h-2 w-2 rounded-full bg-[var(--lemon-fat)]"></div>
+      <p class="text-2xl font-bold text-white">{nutrition.fats}g</p>
+      <p class="mt-1 text-sm text-[var(--lemon-text-secondary)]">Fat</p>
     </div>
-    <div class="rounded-lg bg-gray-50 p-3 text-center">
-      <p class="text-lg font-medium">{nutrition.carbohydrates}g</p>
-      <p class="text-sm text-gray-500">Carbs</p>
+    <div class="rounded-xl bg-[var(--lemon-surface-tertiary)] p-4 text-center">
+      <div class="mx-auto mb-2 h-2 w-2 rounded-full bg-[var(--lemon-carbs)]"></div>
+      <p class="text-2xl font-bold text-white">{nutrition.carbohydrates}g</p>
+      <p class="mt-1 text-sm text-[var(--lemon-text-secondary)]">Carbs</p>
     </div>
   </div>
 </section>
