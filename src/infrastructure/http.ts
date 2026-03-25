@@ -45,12 +45,12 @@ export async function parsePublishRecipeRequest(request: Request): Promise<Publi
     title,
     description: optionalString(body.description, "description"),
     servings: optionalNumber(body.servings, "servings"),
-    imageUrl: optionalString(body.imageUrl, "imageUrl"),
+    imageUrl: optionalWebUrlString(body.imageUrl, "imageUrl"),
     ingredients,
     instructions,
     notes: optionalArray<string>(body.notes, "notes"),
     nutrition: optionalObject<RecipeNutrition>(body.nutrition, "nutrition"),
-    originalSourceUrl: optionalString(body.originalSourceUrl, "originalSourceUrl"),
+    originalSourceUrl: optionalWebUrlString(body.originalSourceUrl, "originalSourceUrl"),
   };
 }
 
@@ -160,6 +160,26 @@ function optionalNumber(value: unknown, field: string): number | undefined {
   }
 
   return value;
+}
+
+function optionalWebUrlString(value: unknown, field: string): string | undefined {
+  const stringValue = optionalString(value, field);
+  if (stringValue === undefined) {
+    return undefined;
+  }
+
+  let url: URL;
+  try {
+    url = new URL(stringValue);
+  } catch {
+    throw new HttpJsonError(400, `Missing or invalid field: ${field}`);
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new HttpJsonError(400, `Missing or invalid field: ${field}`);
+  }
+
+  return url.toString();
 }
 
 function requiredArray<T>(value: unknown, field: string): T[] {

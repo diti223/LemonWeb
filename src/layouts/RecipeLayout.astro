@@ -1,5 +1,6 @@
 ---
 import "../styles/global.css";
+import { LEMON_APP_ID } from "../lib/lemon-app.ts";
 
 interface Props {
   title: string;
@@ -10,6 +11,9 @@ interface Props {
 }
 
 const { title, description, imageUrl, canonicalUrl, jsonUrl } = Astro.props;
+const smartAppBannerContent = canonicalUrl
+  ? `app-id=${LEMON_APP_ID}, app-argument=${canonicalUrl}`
+  : `app-id=${LEMON_APP_ID}`;
 ---
 
 <!doctype html>
@@ -23,7 +27,7 @@ const { title, description, imageUrl, canonicalUrl, jsonUrl } = Astro.props;
     {jsonUrl && <link rel="alternate" type="application/json" href={jsonUrl} />}
 
     <!-- Apple Smart App Banner -->
-    <meta name="apple-itunes-app" content="app-id=6670605474" />
+    <meta name="apple-itunes-app" content={smartAppBannerContent} />
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

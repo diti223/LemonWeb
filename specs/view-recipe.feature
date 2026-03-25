@@ -20,6 +20,10 @@ Feature: View Recipe on Web
     And the page has Twitter Card metadata
     And the page has Recipe JSON-LD structured data
     And the page has a canonical URL
+    And the page has a smart app banner with app-id "6618148167"
+    And the smart app banner app-argument matches the canonical recipe URL
+    And the "Open in Lemon" CTA points at a recipe-specific app-open URL
+    And the App Store fallback link targets the iPhone App Store listing for Lemon
 
   Scenario: JSON endpoint returns full recipe data
     When a client fetches /recipes/chili-con-carne-a3f8b2c1.json

@@ -1,15 +1,17 @@
 ---
+import { LEMON_APP_STORE_URL, buildLemonRecipeOpenUrl } from "../lib/lemon-app.ts";
+
 interface Props {
   canonicalUrl: string;
 }
 
 const { canonicalUrl } = Astro.props;
-const appStoreUrl = "https://apps.apple.com/app/lemon-nutrition/id6670605474";
+const appOpenUrl = buildLemonRecipeOpenUrl(canonicalUrl);
 ---
 
 <footer class="no-print mt-12 pt-6 text-center">
   <a
-    href={canonicalUrl}
+    href={appOpenUrl}
     class="inline-flex items-center gap-2 rounded-full bg-[var(--lemon-accent)] px-8 py-3 font-semibold text-[#020202] transition hover:bg-[var(--lemon-accent-hover)]"
   >
     Open in Lemon
@@ -17,7 +19,7 @@ const appStoreUrl = "https://apps.apple.com/app/lemon-nutrition/id6670605474";
   <p class="mt-3 text-sm text-[var(--lemon-text-secondary)]">
     Don't have the app?
     <a
-      href={appStoreUrl}
+      href={LEMON_APP_STORE_URL}
       target="_blank"
       rel="noopener noreferrer"
       class="underline hover:text-white"

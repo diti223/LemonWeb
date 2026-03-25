@@ -14,8 +14,19 @@ export function createPublishRecipeRoute(
       return unauthorizedResponse();
     }
 
+    let publishContext: Record<string, unknown> | undefined;
     try {
       const command = await parsePublishRecipeRequest(request);
+      publishContext = {
+        id: command.id,
+        authorId: command.authorId,
+        title: command.title,
+        servings: command.servings,
+        ingredientCount: command.ingredients.length,
+        instructionCount: command.instructions.length,
+        hasImageUrl: command.imageUrl !== undefined,
+        hasOriginalSourceUrl: command.originalSourceUrl !== undefined,
+      };
       const result = await application.publishRecipe.execute(command);
 
       if (result.status === "forbidden") {
@@ -34,7 +45,11 @@ export function createPublishRecipeRoute(
         return jsonErrorResponse(error);
       }
 
-      throw error;
+      console.error("[LemonWebPublishRoute] Unhandled publish failure", {
+        error,
+        publishContext,
+      });
+      return jsonResponse({ error: "Internal publish error" }, 500);
     }
   };
 }

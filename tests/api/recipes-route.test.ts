@@ -46,4 +46,30 @@ describe("POST /api/recipes", () => {
       error: "Recipe belongs to a different author",
     });
   });
+
+  it("returns 400 when publish payload contains a non-web image url", async () => {
+    const handler = createPublishRecipeRoute(() => createLemonWebApplication({
+      repository: new InMemoryPublishedRecipeRepository(),
+      clock: fixedClock,
+      publishingPolicy: fixedPublishingPolicy,
+      requestAuthenticator: { isAuthorized: () => true },
+    }));
+
+    const response = await handler({
+      request: new Request("https://recipes.lemonnutrition.eu/api/recipes", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(makePublishRecipeCommand({
+          imageUrl: "file:///Users/adrian/Pictures/recipe.jpg",
+        })),
+      }),
+    } as any);
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: "Missing or invalid field: imageUrl",
+    });
+  });
 });
