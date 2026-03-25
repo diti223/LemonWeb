@@ -16,8 +16,12 @@ export function createUploadImageRoute(
 
     try {
       const input = await parseImageUploadRequest(request, url);
-      const imageUrl = await application.uploadRecipeImage.execute(input);
-      return jsonResponse({ url: imageUrl }, 201);
+      const result = await application.uploadRecipeImage.execute(input);
+      if (result.status === "forbidden") {
+        return jsonErrorResponse(new HttpJsonError(403, "Recipe belongs to a different author"));
+      }
+
+      return jsonResponse({ url: result.url }, 201);
     } catch (error) {
       if (error instanceof HttpJsonError) {
         return jsonErrorResponse(error);

@@ -48,7 +48,7 @@ export function createLemonWebApplication(
       publishingPolicy,
     }),
     unpublishRecipe: createUnpublishRecipeUseCase(repository),
-    uploadRecipeImage: createUploadRecipeImageUseCase(imageStore),
+    uploadRecipeImage: createUploadRecipeImageUseCase(imageStore, repository),
     getPublishedRecipe: createGetPublishedRecipeUseCase(repository),
     getPublishedRecipeJson: createGetPublishedRecipeJsonUseCase(repository),
   };

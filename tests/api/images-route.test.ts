@@ -6,6 +6,13 @@ describe("POST /api/images", () => {
   it("returns 400 when recipeId is missing", async () => {
     const handler = createUploadImageRoute(() => createLemonWebApplication({
       requestAuthenticator: { isAuthorized: () => true },
+      repository: {
+        getById: vi.fn(),
+        getBySlug: vi.fn(),
+        listAll: vi.fn(),
+        save: vi.fn(),
+        delete: vi.fn(),
+      },
       imageStore: {
         upload: vi.fn(),
       },
@@ -32,20 +39,27 @@ describe("POST /api/images", () => {
     const upload = vi.fn(async () => "https://blob.example/recipes/a3f8b2c1/hero.jpg");
     const handler = createUploadImageRoute(() => createLemonWebApplication({
       requestAuthenticator: { isAuthorized: () => true },
+      repository: {
+        getById: vi.fn(async () => ({ id: "a3f8b2c1-1234-5678-9abc-def012345678", authorId: "author-1" } as any)),
+        getBySlug: vi.fn(),
+        listAll: vi.fn(),
+        save: vi.fn(),
+        delete: vi.fn(),
+      },
       imageStore: {
         upload,
       },
     }));
 
     const response = await handler({
-      request: new Request("https://recipes.lemonnutrition.eu/api/images?recipeId=a3f8b2c1-1234-5678-9abc-def012345678", {
+      request: new Request("https://recipes.lemonnutrition.eu/api/images?recipeId=a3f8b2c1-1234-5678-9abc-def012345678&authorId=author-1", {
         method: "POST",
         headers: {
           "content-type": "image/jpeg",
         },
         body: Buffer.from([1, 2, 3]),
       }),
-      url: new URL("https://recipes.lemonnutrition.eu/api/images?recipeId=a3f8b2c1-1234-5678-9abc-def012345678"),
+      url: new URL("https://recipes.lemonnutrition.eu/api/images?recipeId=a3f8b2c1-1234-5678-9abc-def012345678&authorId=author-1"),
     } as any);
 
     expect(response.status).toBe(201);
@@ -62,13 +76,20 @@ describe("POST /api/images", () => {
   it("returns 413 for oversized uploads", async () => {
     const handler = createUploadImageRoute(() => createLemonWebApplication({
       requestAuthenticator: { isAuthorized: () => true },
+      repository: {
+        getById: vi.fn(),
+        getBySlug: vi.fn(),
+        listAll: vi.fn(),
+        save: vi.fn(),
+        delete: vi.fn(),
+      },
       imageStore: {
         upload: vi.fn(),
       },
     }));
 
     const response = await handler({
-      request: new Request("https://recipes.lemonnutrition.eu/api/images?recipeId=a3f8b2c1-1234-5678-9abc-def012345678", {
+      request: new Request("https://recipes.lemonnutrition.eu/api/images?recipeId=a3f8b2c1-1234-5678-9abc-def012345678&authorId=author-1", {
         method: "POST",
         headers: {
           "content-type": "image/jpeg",
@@ -76,9 +97,43 @@ describe("POST /api/images", () => {
         },
         body: Buffer.from([1, 2, 3]),
       }),
-      url: new URL("https://recipes.lemonnutrition.eu/api/images?recipeId=a3f8b2c1-1234-5678-9abc-def012345678"),
+      url: new URL("https://recipes.lemonnutrition.eu/api/images?recipeId=a3f8b2c1-1234-5678-9abc-def012345678&authorId=author-1"),
     } as any);
 
     expect(response.status).toBe(413);
+  });
+
+  it("returns 403 when another author tries to overwrite an existing recipe image", async () => {
+    const upload = vi.fn();
+    const handler = createUploadImageRoute(() => createLemonWebApplication({
+      requestAuthenticator: { isAuthorized: () => true },
+      repository: {
+        getById: vi.fn(async () => ({ id: "a3f8b2c1-1234-5678-9abc-def012345678", authorId: "author-2" } as any)),
+        getBySlug: vi.fn(),
+        listAll: vi.fn(),
+        save: vi.fn(),
+        delete: vi.fn(),
+      },
+      imageStore: {
+        upload,
+      },
+    }));
+
+    const response = await handler({
+      request: new Request("https://recipes.lemonnutrition.eu/api/images?recipeId=a3f8b2c1-1234-5678-9abc-def012345678&authorId=author-1", {
+        method: "POST",
+        headers: {
+          "content-type": "image/jpeg",
+        },
+        body: Buffer.from([1, 2, 3]),
+      }),
+      url: new URL("https://recipes.lemonnutrition.eu/api/images?recipeId=a3f8b2c1-1234-5678-9abc-def012345678&authorId=author-1"),
+    } as any);
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({
+      error: "Recipe belongs to a different author",
+    });
+    expect(upload).not.toHaveBeenCalled();
   });
 });

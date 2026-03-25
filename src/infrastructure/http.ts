@@ -86,10 +86,14 @@ export async function parseUnpublishRecipeRequest(
 export async function parseImageUploadRequest(
   request: Request,
   url: URL,
-): Promise<{ recipeId: string; contentType: string; data: Buffer }> {
+): Promise<{ recipeId: string; authorId: string; contentType: string; data: Buffer }> {
   const recipeId = url.searchParams.get("recipeId");
   if (!recipeId) {
     throw new HttpJsonError(400, "Missing query parameter: recipeId");
+  }
+  const authorId = url.searchParams.get("authorId");
+  if (!authorId) {
+    throw new HttpJsonError(400, "Missing query parameter: authorId");
   }
 
   const contentType = request.headers.get("content-type") || "image/jpeg";
@@ -106,6 +110,7 @@ export async function parseImageUploadRequest(
 
   return {
     recipeId,
+    authorId,
     contentType,
     data: Buffer.from(arrayBuffer),
   };

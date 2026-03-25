@@ -3,6 +3,7 @@ Feature: Upload Recipe Image
   Background:
     # PUBLISH_API_KEY authenticates the client.
     # recipeId is the stable upload key so the image can be uploaded before publish.
+    # authorId is required so only the owning author can overwrite an existing recipe image.
     # The app should normalize images on-device before upload.
 
   Scenario: Upload a hero image before publishing
@@ -23,3 +24,8 @@ Feature: Upload Recipe Image
   Scenario: Reject upload without recipeId
     When the app POSTs an image without the recipeId query parameter
     Then the response status is 400
+
+  Scenario: Reject overwrite from another author
+    Given recipe "a3f8b2c1-1234-5678-9abc-def012345678" is already published by author "author-2"
+    When author "author-1" POSTs an image to /api/images for that recipeId
+    Then the response status is 403

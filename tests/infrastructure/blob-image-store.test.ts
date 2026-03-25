@@ -19,6 +19,7 @@ describe("BlobImageStore", () => {
       expect.objectContaining({
         access: "public",
         addRandomSuffix: false,
+        allowOverwrite: true,
         contentType: "image/jpeg",
       }),
     );

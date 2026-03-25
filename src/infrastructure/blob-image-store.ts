@@ -8,6 +8,7 @@ export class BlobImageStore implements ImageStore {
     const { url } = await put(pathname, data, {
       access: "public",
       addRandomSuffix: false,
+      allowOverwrite: true,
       contentType,
     });
     return url;

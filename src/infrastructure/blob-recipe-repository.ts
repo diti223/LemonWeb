@@ -28,6 +28,7 @@ export class BlobRecipeRepository implements PublishedRecipeRepository {
     await put(INDEX_KEY, JSON.stringify(index), {
       access: "public",
       addRandomSuffix: false,
+      allowOverwrite: true,
     });
   }
 
@@ -61,6 +62,7 @@ export class BlobRecipeRepository implements PublishedRecipeRepository {
     await put(recipeKey(recipe.id), JSON.stringify(recipe), {
       access: "public",
       addRandomSuffix: false,
+      allowOverwrite: true,
     });
 
     const index = await this.readIndex();
