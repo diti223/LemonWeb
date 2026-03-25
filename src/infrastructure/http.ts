@@ -86,10 +86,10 @@ export async function parseUnpublishRecipeRequest(
 export async function parseImageUploadRequest(
   request: Request,
   url: URL,
-): Promise<{ slug: string; contentType: string; data: Buffer }> {
-  const slug = url.searchParams.get("slug");
-  if (!slug) {
-    throw new HttpJsonError(400, "Missing query parameter: slug");
+): Promise<{ recipeId: string; contentType: string; data: Buffer }> {
+  const recipeId = url.searchParams.get("recipeId");
+  if (!recipeId) {
+    throw new HttpJsonError(400, "Missing query parameter: recipeId");
   }
 
   const contentType = request.headers.get("content-type") || "image/jpeg";
@@ -97,13 +97,15 @@ export async function parseImageUploadRequest(
     throw new HttpJsonError(400, "Content-Type must be image/*");
   }
 
+  enforceContentLengthLimit(request, MAX_IMAGE_SIZE, "Image too large (max 5MB)");
+
   const arrayBuffer = await request.arrayBuffer();
   if (arrayBuffer.byteLength > MAX_IMAGE_SIZE) {
     throw new HttpJsonError(413, "Image too large (max 5MB)");
   }
 
   return {
-    slug,
+    recipeId,
     contentType,
     data: Buffer.from(arrayBuffer),
   };

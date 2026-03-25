@@ -9,7 +9,7 @@ export interface PublishedRecipeRepository {
 }
 
 export interface ImageStore {
-  upload(data: Buffer, contentType: string, slug: string): Promise<string>;
+  upload(data: Buffer, contentType: string, recipeId: string): Promise<string>;
 }
 
 export interface Clock {

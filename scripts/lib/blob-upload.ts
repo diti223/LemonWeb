@@ -8,10 +8,10 @@ import { put } from "@vercel/blob";
  */
 export async function uploadImage(
   filePath: string,
-  slug: string,
+  recipeId: string,
 ): Promise<string> {
   const ext = extname(filePath).slice(1); // remove leading dot
-  const pathname = `recipes/${slug}/hero.${ext}`;
+  const pathname = `recipes/${recipeId}/hero.${ext}`;
 
   const buffer = await readFile(filePath);
 

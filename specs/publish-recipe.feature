@@ -9,7 +9,7 @@ Feature: Publish Recipe
     Given a recipe "Chili Con Carne" with id "a3f8b2c1-1234-5678-9abc-def012345678"
     And the recipe has ingredients with full FoodItem data
     And the user has authorId "abc123xyz789"
-    And the user has uploaded a hero image via POST /api/images
+    And the user has uploaded a hero image via POST /api/images with recipeId "a3f8b2c1-1234-5678-9abc-def012345678"
     When the app POSTs the recipe JSON to /api/recipes with a valid API key
     Then the response status is 201
     And the response contains slug "chili-con-carne-a3f8b2c1"

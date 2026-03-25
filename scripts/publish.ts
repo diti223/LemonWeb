@@ -163,7 +163,7 @@ async function main() {
     let imageUrl: string | undefined;
     if (args.image) {
       console.log(`  Uploading image for "${recipe.name}"…`);
-      imageUrl = await uploadImage(resolve(args.image), slug);
+      imageUrl = await uploadImage(resolve(args.image), recipe.id);
       console.log(`  → ${imageUrl}`);
     }
 

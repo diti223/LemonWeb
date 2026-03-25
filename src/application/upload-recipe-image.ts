@@ -3,7 +3,7 @@ import type { ImageStore } from "../domain/ports.ts";
 export interface UploadRecipeImageInput {
   readonly data: Buffer;
   readonly contentType: string;
-  readonly slug: string;
+  readonly recipeId: string;
 }
 
 export interface UploadRecipeImageUseCase {
@@ -15,7 +15,7 @@ export function createUploadRecipeImageUseCase(
 ): UploadRecipeImageUseCase {
   return {
     async execute(input) {
-      return imageStore.upload(input.data, input.contentType, input.slug);
+      return imageStore.upload(input.data, input.contentType, input.recipeId);
     },
   };
 }
