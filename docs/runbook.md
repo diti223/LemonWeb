@@ -20,6 +20,16 @@ Set these environment variables in Vercel for the LemonWeb project:
 
 The server uses Blob for the canonical public recipe store and public hero images.
 
+**Important:** After setting env vars in Vercel, you must redeploy for them to take effect. Push to trunk to trigger a new deployment.
+
+Verify env vars are loaded:
+```bash
+curl -X POST https://recipes.lemonnutrition.eu/api/images \
+  -H "Authorization: Bearer <PUBLISH_API_KEY>"
+```
+
+Should return `200` with success or proper error, not `401 Unauthorized`.
+
 ## Universal Links
 
 LemonWeb serves the Apple App Site Association file from `/.well-known/apple-app-site-association`.
