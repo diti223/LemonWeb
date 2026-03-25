@@ -7,6 +7,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "check": "astro check && vitest run",
     "publish-recipe": "tsx scripts/publish.ts",
     "test": "vitest run"
   },
@@ -18,5 +19,10 @@
     "tailwindcss": "^4.2.2",
     "tsx": "^4.21.0",
     "vitest": "^4.1.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.8",
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3"
   }
 }

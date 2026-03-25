@@ -26,7 +26,9 @@ Feature: View Recipe on Web
     Then the response is JSON with version "2.0"
     And ingredients contain full FoodItem objects with nutrition tables
     And ingredients contain structured Quantity with Unit encoding
-    And the response includes ingredientDisplayTexts for simple rendering
+    And the response does NOT expose authorId
+    And the response does NOT expose page-only display fields
+    And the same slug and canonical URL policy is used by API publish and CLI publish
 
   Scenario: Print mode
     When a visitor triggers print on the recipe page

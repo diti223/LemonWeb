@@ -9,6 +9,7 @@
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import { slugify } from "./lib/slug.js";
 import { uploadImage } from "./lib/blob-upload.js";
 import {
@@ -35,7 +36,7 @@ function parseArgs(argv: string[]): { input: string; image?: string } {
 
   if (!input) {
     console.error("Usage: npx tsx scripts/publish.ts --input <file.json> [--image <hero.jpg>]");
-    process.exit(1);
+    throw new Error("Missing required --input argument");
   }
 
   return { input, image };
@@ -151,12 +152,12 @@ async function main() {
     ? json.recipes
     : [json as FileRecipeInput];
 
-  const projectRoot = resolve(import.meta.dirname, "..");
+  const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const outDir = resolve(projectRoot, "src/content/recipes");
   await mkdir(outDir, { recursive: true });
 
   for (const recipe of recipes) {
-    const slug = slugify(recipe.name);
+    const slug = slugify(recipe.name, recipe.id);
 
     // Optional image upload
     let imageUrl: string | undefined;

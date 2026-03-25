@@ -7,6 +7,7 @@ export default defineConfig({
   site: "https://recipes.lemonnutrition.eu",
   adapter: vercel(),
   vite: {
+    // @ts-expect-error Astro and Tailwind currently resolve different Vite types here.
     plugins: [tailwindcss()],
   },
 });

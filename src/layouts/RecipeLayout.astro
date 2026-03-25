@@ -6,9 +6,10 @@ interface Props {
   description?: string;
   imageUrl?: string;
   canonicalUrl?: string;
+  jsonUrl?: string;
 }
 
-const { title, description, imageUrl, canonicalUrl } = Astro.props;
+const { title, description, imageUrl, canonicalUrl, jsonUrl } = Astro.props;
 ---
 
 <!doctype html>
@@ -19,16 +20,27 @@ const { title, description, imageUrl, canonicalUrl } = Astro.props;
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
     {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    {jsonUrl && <link rel="alternate" type="application/json" href={jsonUrl} />}
 
-    <!-- Open Graph -->
+    <!-- Apple Smart App Banner -->
+    <meta name="apple-itunes-app" content="app-id=6670605474" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="article" />
+    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
     <meta property="og:title" content={title} />
     {description && <meta property="og:description" content={description} />}
     {imageUrl && <meta property="og:image" content={imageUrl} />}
-    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
-    <meta property="og:type" content="article" />
+    {imageUrl && <meta property="og:image:width" content="1200" />}
+    {imageUrl && <meta property="og:image:height" content="630" />}
+    <meta property="og:site_name" content="Lemon" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
+    {canonicalUrl && <meta name="twitter:url" content={canonicalUrl} />}
     <meta name="twitter:title" content={title} />
     {description && <meta name="twitter:description" content={description} />}
     {imageUrl && <meta name="twitter:image" content={imageUrl} />}

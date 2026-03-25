@@ -1,3 +1,4 @@
+import { buildRecipeCanonicalUrl } from "../../src/domain/publishing-policy.ts";
 import { slugify } from "../lib/slug.js";
 
 // ---------------------------------------------------------------------------
@@ -150,7 +151,7 @@ export function mapFileRecipeToContent(
   recipe: FileRecipeInput,
   imageUrl?: string,
 ): PublicRecipeContent {
-  const slug = slugify(recipe.name);
+  const slug = slugify(recipe.name, recipe.id);
 
   // Resolve image: explicit parameter > imageSource.remote.url
   const resolvedImage =
@@ -164,7 +165,7 @@ export function mapFileRecipeToContent(
     })),
     instructions: recipe.instructions,
     notes: [],
-    canonicalUrl: `https://recipes.lemonnutrition.eu/recipes/${slug}`,
+    canonicalUrl: buildRecipeCanonicalUrl("https://recipes.lemonnutrition.eu", slug),
   };
 
   if (recipe.description) {

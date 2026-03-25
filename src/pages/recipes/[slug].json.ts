@@ -1,20 +1,22 @@
 import type { APIRoute } from "astro";
-import { recipeRepository } from "../../infrastructure/composition-root.ts";
+import { createLemonWebApplication } from "../../infrastructure/composition-root.ts";
+import { jsonResponse } from "../../infrastructure/http.ts";
 
 export const prerender = false;
 
-export const GET: APIRoute = async ({ params }) => {
-  const recipe = await recipeRepository.getBySlug(params.slug!);
+export function createPublishedRecipeJsonRoute(
+  resolveApplication: typeof createLemonWebApplication = createLemonWebApplication,
+): APIRoute {
+  return async ({ params }) => {
+    const application = resolveApplication();
+    const recipe = await application.getPublishedRecipeJson.execute(params.slug!);
 
-  if (!recipe) {
-    return new Response(JSON.stringify({ error: "Not found" }), {
-      status: 404,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+    if (!recipe) {
+      return jsonResponse({ error: "Not found" }, 404);
+    }
 
-  return new Response(JSON.stringify(recipe), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
-};
+    return jsonResponse(recipe);
+  };
+}
+
+export const GET = createPublishedRecipeJsonRoute();

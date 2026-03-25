@@ -1,13 +1,22 @@
-import type { PublicRecipe } from "./public-recipe.ts";
+import type { StoredPublishedRecipe } from "./public-recipe.ts";
 
-export interface RecipeRepository {
-  getBySlug(slug: string): Promise<PublicRecipe | undefined>;
-  getById(id: string): Promise<PublicRecipe | undefined>;
-  listAll(): Promise<PublicRecipe[]>;
-  save(recipe: PublicRecipe): Promise<void>;
+export interface PublishedRecipeRepository {
+  getBySlug(slug: string): Promise<StoredPublishedRecipe | undefined>;
+  getById(id: string): Promise<StoredPublishedRecipe | undefined>;
+  listAll(): Promise<StoredPublishedRecipe[]>;
+  save(recipe: StoredPublishedRecipe): Promise<void>;
   delete(id: string): Promise<boolean>;
 }
 
 export interface ImageStore {
   upload(data: Buffer, contentType: string, slug: string): Promise<string>;
+}
+
+export interface Clock {
+  now(): Date;
+}
+
+export interface RecipePublishingPolicy {
+  createSlug(title: string, id: string): string;
+  buildCanonicalUrl(slug: string): string;
 }

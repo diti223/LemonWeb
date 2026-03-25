@@ -1,27 +1,40 @@
 import type { APIRoute } from "astro";
-import { validateAuth, unauthorizedResponse } from "../../../infrastructure/auth.ts";
-import { recipeRepository } from "../../../infrastructure/composition-root.ts";
+import { unauthorizedResponse } from "../../../infrastructure/auth.ts";
+import { createLemonWebApplication } from "../../../infrastructure/composition-root.ts";
+import { HttpJsonError, jsonErrorResponse, jsonResponse, parseUnpublishRecipeRequest } from "../../../infrastructure/http.ts";
 
 export const prerender = false;
 
-export const DELETE: APIRoute = async ({ params, request }) => {
-  if (!validateAuth(request)) {
-    return unauthorizedResponse();
-  }
+export function createDeleteRecipeRoute(
+  resolveApplication: typeof createLemonWebApplication = createLemonWebApplication,
+): APIRoute {
+  return async ({ params, request }) => {
+    const application = resolveApplication();
+    if (!application.requestAuthenticator.isAuthorized(request)) {
+      return unauthorizedResponse();
+    }
 
-  const id = params.id;
-  if (!id) {
-    return new Response(JSON.stringify({ error: "Missing recipe id" }), {
-      status: 400, headers: { "Content-Type": "application/json" },
-    });
-  }
+    try {
+      const input = await parseUnpublishRecipeRequest(request, params.id);
+      const result = await application.unpublishRecipe.execute(input);
 
-  const deleted = await recipeRepository.delete(id);
-  if (!deleted) {
-    return new Response(JSON.stringify({ error: "Not found" }), {
-      status: 404, headers: { "Content-Type": "application/json" },
-    });
-  }
+      if (result === "deleted") {
+        return new Response(null, { status: 204 });
+      }
 
-  return new Response(null, { status: 204 });
-};
+      if (result === "forbidden") {
+        return jsonResponse({ error: "Recipe belongs to a different author" }, 403);
+      }
+
+      return jsonResponse({ error: "Not found" }, 404);
+    } catch (error) {
+      if (error instanceof HttpJsonError) {
+        return jsonErrorResponse(error);
+      }
+
+      throw error;
+    }
+  };
+}
+
+export const DELETE = createDeleteRecipeRoute();

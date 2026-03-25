@@ -1,5 +1,5 @@
 ---
-import { recipeRepository } from "../../infrastructure/composition-root.ts";
+import { createLemonWebApplication } from "../../infrastructure/composition-root.ts";
 import RecipeLayout from "../../layouts/RecipeLayout.astro";
 import RecipeJsonLd from "../../components/RecipeJsonLd.astro";
 import RecipeHero from "../../components/RecipeHero.astro";
@@ -13,7 +13,8 @@ import PrintStyles from "../../components/PrintStyles.astro";
 export const prerender = false;
 
 const { slug } = Astro.params;
-const recipe = await recipeRepository.getBySlug(slug!);
+const application = createLemonWebApplication();
+const recipe = await application.getPublishedRecipe.execute(slug!);
 
 if (!recipe) {
   return new Response(null, { status: 404, statusText: "Not Found" });
@@ -27,6 +28,7 @@ const canonicalUrl = recipe.canonicalUrl;
   description={recipe.description}
   imageUrl={recipe.imageUrl}
   canonicalUrl={canonicalUrl}
+  jsonUrl={recipe.jsonUrl}
 >
   <PrintStyles />
   <RecipeJsonLd

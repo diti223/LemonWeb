@@ -1,14 +1,25 @@
+export interface RequestAuthenticator {
+  isAuthorized(request: Request): boolean;
+}
+
+export function createBearerRequestAuthenticator(
+  expectedToken: string | undefined = import.meta.env.PUBLISH_API_KEY || process.env.PUBLISH_API_KEY,
+): RequestAuthenticator {
+  return {
+    isAuthorized(request) {
+      const authHeader = request.headers.get("Authorization");
+      if (!authHeader || !expectedToken) {
+        return false;
+      }
+
+      const [scheme, token] = authHeader.split(" ");
+      return scheme === "Bearer" && token === expectedToken;
+    },
+  };
+}
+
 export function validateAuth(request: Request): boolean {
-  const authHeader = request.headers.get("Authorization");
-  if (!authHeader) return false;
-
-  const [scheme, token] = authHeader.split(" ");
-  if (scheme !== "Bearer" || !token) return false;
-
-  const expectedKey = import.meta.env.PUBLISH_API_KEY || process.env.PUBLISH_API_KEY;
-  if (!expectedKey) return false;
-
-  return token === expectedKey;
+  return createBearerRequestAuthenticator().isAuthorized(request);
 }
 
 export function unauthorizedResponse(): Response {
