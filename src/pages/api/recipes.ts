@@ -23,8 +23,10 @@ export function createPublishRecipeRoute(
         title: command.title,
         servings: command.servings,
         ingredientCount: command.ingredients.length,
+        optionalIngredientCount: command.optionalIngredients?.length ?? 0,
         instructionCount: command.instructions.length,
         hasImageUrl: command.imageUrl !== undefined,
+        hasNutrition: command.nutrition !== undefined,
         hasOriginalSourceUrl: command.originalSourceUrl !== undefined,
       };
       const result = await application.publishRecipe.execute(command);

@@ -29,6 +29,21 @@
         ]
       }
     },
+    "optionalIngredients": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      }
+    },
     "instructions": {
       "type": "array",
       "items": {

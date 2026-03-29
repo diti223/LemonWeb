@@ -24,6 +24,7 @@ describe("GET /recipes/[slug].json", () => {
     const body = await response.json();
     expect(body.authorId).toBeUndefined();
     expect(body.ingredientDisplayTexts).toBeUndefined();
+    expect(body.optionalIngredients).toBeDefined();
     expect(body.slug).toBe(storedRecipe.slug);
   });
 });

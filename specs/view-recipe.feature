@@ -1,13 +1,14 @@
 Feature: View Recipe on Web
 
   Scenario: Visitor views a published recipe
-    Given a published recipe "Chili Con Carne" with image, 7 servings, 10 ingredients
+    Given a published recipe "Chili Con Carne" with image, 7 servings, 10 ingredients, and 2 optional ingredients
     When a visitor opens /recipes/chili-con-carne-a3f8b2c1
     Then the page has a dark theme with black background
     And the page shows the hero image with rounded corners
     And the page shows the recipe title and description
     And the page shows servings count (static, no scaling)
-    And the page shows total nutrition (calories, protein, fat, carbs)
+    And the page shows optional ingredients in their own section
+    And the page shows nutrition per serving (calories, protein, fat, carbs)
     But the page does NOT show per-ingredient macros
     And the page shows the ingredient list as simple text
     And the page shows numbered instructions
@@ -29,6 +30,7 @@ Feature: View Recipe on Web
     When a client fetches /recipes/chili-con-carne-a3f8b2c1.json
     Then the response is JSON with version "2.0"
     And ingredients contain full FoodItem objects with nutrition tables
+    And optional ingredients are included when present
     And ingredients contain structured Quantity with Unit encoding
     And the response does NOT expose authorId
     And the response does NOT expose page-only display fields

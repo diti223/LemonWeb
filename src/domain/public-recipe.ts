@@ -38,6 +38,7 @@ interface PublishedRecipeFields {
   readonly servings: number;
   readonly imageUrl?: string;
   readonly ingredients: readonly RecipeIngredient[];
+  readonly optionalIngredients: readonly RecipeIngredient[];
   readonly instructions: readonly string[];
   readonly notes: readonly string[];
   readonly nutrition?: RecipeNutrition;
@@ -54,6 +55,7 @@ export interface PublishRecipeCommand {
   readonly servings?: number;
   readonly imageUrl?: string;
   readonly ingredients: readonly RecipeIngredient[];
+  readonly optionalIngredients?: readonly RecipeIngredient[];
   readonly instructions: readonly string[];
   readonly notes?: readonly string[];
   readonly nutrition?: RecipeNutrition;
@@ -68,6 +70,7 @@ export interface PublicRecipeDocument extends PublishedRecipeFields {}
 
 export interface RecipePageViewModel extends PublicRecipeDocument {
   readonly ingredientDisplayTexts: readonly string[];
+  readonly optionalIngredientDisplayTexts: readonly string[];
   readonly jsonUrl: string;
 }
 
@@ -91,6 +94,7 @@ export function toStoredPublishedRecipe(
     servings: command.servings ?? 1,
     imageUrl: command.imageUrl,
     ingredients: command.ingredients,
+    optionalIngredients: command.optionalIngredients ?? [],
     instructions: command.instructions,
     notes: command.notes ?? [],
     nutrition: command.nutrition,
@@ -110,6 +114,7 @@ export function toPublicRecipeDocument(recipe: StoredPublishedRecipe): PublicRec
     servings: recipe.servings,
     imageUrl: recipe.imageUrl,
     ingredients: recipe.ingredients,
+    optionalIngredients: recipe.optionalIngredients,
     instructions: recipe.instructions,
     notes: recipe.notes,
     nutrition: recipe.nutrition,
@@ -122,10 +127,12 @@ export function toPublicRecipeDocument(recipe: StoredPublishedRecipe): PublicRec
 export function toRecipePageViewModel(
   recipe: StoredPublishedRecipe,
   ingredientDisplayTexts: readonly string[],
+  optionalIngredientDisplayTexts: readonly string[],
 ): RecipePageViewModel {
   return {
     ...toPublicRecipeDocument(recipe),
     ingredientDisplayTexts,
+    optionalIngredientDisplayTexts,
     jsonUrl: `${recipe.canonicalUrl}.json`,
   };
 }

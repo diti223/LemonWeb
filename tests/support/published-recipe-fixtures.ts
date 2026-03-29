@@ -53,6 +53,7 @@ export function makePublishRecipeCommand(
     servings: 4,
     imageUrl: "https://cdn.example.com/chili.jpg",
     ingredients: [makeIngredient()],
+    optionalIngredients: [],
     instructions: ["Cook slowly."],
     notes: ["Serve warm."],
     nutrition: {
@@ -77,6 +78,9 @@ export function makeStoredPublishedRecipe(
     ...(overrides.servings !== undefined ? { servings: overrides.servings } : {}),
     ...(overrides.imageUrl !== undefined ? { imageUrl: overrides.imageUrl } : {}),
     ...(overrides.ingredients !== undefined ? { ingredients: overrides.ingredients } : {}),
+    ...(overrides.optionalIngredients !== undefined
+      ? { optionalIngredients: overrides.optionalIngredients }
+      : {}),
     ...(overrides.instructions !== undefined ? { instructions: overrides.instructions } : {}),
     ...(overrides.notes !== undefined ? { notes: overrides.notes } : {}),
     ...(overrides.nutrition !== undefined ? { nutrition: overrides.nutrition } : {}),

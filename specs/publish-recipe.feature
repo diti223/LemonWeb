@@ -7,7 +7,7 @@ Feature: Publish Recipe
 
   Scenario: User shares a recipe publicly from the app
     Given a recipe "Chili Con Carne" with id "a3f8b2c1-1234-5678-9abc-def012345678"
-    And the recipe has ingredients with full FoodItem data
+    And the recipe has ingredients and optional ingredients with full FoodItem data
     And the user has authorId "abc123xyz789"
     And the user has uploaded a hero image via POST /api/images with recipeId "a3f8b2c1-1234-5678-9abc-def012345678"
     When the app POSTs the recipe JSON to /api/recipes with a valid API key
@@ -17,6 +17,7 @@ Feature: Publish Recipe
     And the recipe is viewable at /recipes/chili-con-carne-a3f8b2c1
     And the stored recipe keeps authorId "abc123xyz789"
     And the public JSON does not expose authorId
+    And the public JSON includes optional ingredients when provided
 
   Scenario: Publish rejected without auth
     When the app POSTs a recipe to /api/recipes without an API key

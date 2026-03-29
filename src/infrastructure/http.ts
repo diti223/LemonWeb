@@ -37,6 +37,7 @@ export async function parsePublishRecipeRequest(request: Request): Promise<Publi
   const authorId = requiredString(body.authorId, "authorId");
   const title = requiredString(body.title, "title");
   const ingredients = requiredNonEmptyArray<RecipeIngredient>(body.ingredients, "ingredients");
+  const optionalIngredients = optionalArray<RecipeIngredient>(body.optionalIngredients, "optionalIngredients") ?? [];
   const instructions = requiredArray<string>(body.instructions, "instructions");
 
   return {
@@ -47,6 +48,7 @@ export async function parsePublishRecipeRequest(request: Request): Promise<Publi
     servings: optionalNumber(body.servings, "servings"),
     imageUrl: optionalWebUrlString(body.imageUrl, "imageUrl"),
     ingredients,
+    optionalIngredients,
     instructions,
     notes: optionalArray<string>(body.notes, "notes"),
     nutrition: optionalObject<RecipeNutrition>(body.nutrition, "nutrition"),

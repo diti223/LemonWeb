@@ -21,6 +21,10 @@ if (!recipe) {
 }
 
 const canonicalUrl = recipe.canonicalUrl;
+const allIngredientTexts = [
+  ...recipe.ingredientDisplayTexts,
+  ...recipe.optionalIngredientDisplayTexts,
+];
 ---
 
 <RecipeLayout
@@ -35,7 +39,7 @@ const canonicalUrl = recipe.canonicalUrl;
     title={recipe.title}
     description={recipe.description}
     servings={recipe.servings}
-    ingredientTexts={recipe.ingredientDisplayTexts}
+    ingredientTexts={allIngredientTexts}
     instructions={[...recipe.instructions]}
     nutrition={recipe.nutrition}
     imageUrl={recipe.imageUrl}
@@ -52,12 +56,20 @@ const canonicalUrl = recipe.canonicalUrl;
     <p class="mb-6 text-sm text-[var(--lemon-text-secondary)]">Servings: {recipe.servings}</p>
   )}
 
-  <IngredientList ingredientTexts={recipe.ingredientDisplayTexts} />
+  <IngredientList title="Ingredients" ingredientTexts={recipe.ingredientDisplayTexts} />
+
+  {recipe.optionalIngredientDisplayTexts.length > 0 && (
+    <IngredientList
+      title="Optional Ingredients"
+      ingredientTexts={recipe.optionalIngredientDisplayTexts}
+    />
+  )}
+
   <InstructionList instructions={[...recipe.instructions]} />
 
   <NotesSection notes={[...recipe.notes]} />
 
-  {recipe.nutrition && <NutritionSummary nutrition={recipe.nutrition} />}
+  {recipe.nutrition && <NutritionSummary nutrition={recipe.nutrition} servings={recipe.servings} />}
 
   <OpenInLemonCTA canonicalUrl={canonicalUrl} />
 </RecipeLayout>

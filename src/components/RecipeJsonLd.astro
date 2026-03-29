@@ -44,12 +44,13 @@ jsonLd.recipeInstructions = instructions.map((step) => ({
 }));
 
 if (nutrition) {
+  const divisor = servings && servings > 0 ? servings : 1;
   jsonLd.nutrition = {
     "@type": "NutritionInformation",
-    calories: `${nutrition.calories} calories`,
-    proteinContent: `${nutrition.proteins} g`,
-    fatContent: `${nutrition.fats} g`,
-    carbohydrateContent: `${nutrition.carbohydrates} g`,
+    calories: `${Math.round(nutrition.calories / divisor)} calories`,
+    proteinContent: `${Math.round(nutrition.proteins / divisor)} g`,
+    fatContent: `${Math.round(nutrition.fats / divisor)} g`,
+    carbohydrateContent: `${Math.round(nutrition.carbohydrates / divisor)} g`,
   };
 }
 ---

@@ -43,6 +43,7 @@ export class ContentRecipeRepository implements PublishedRecipeRepository {
       servings: (data.servings as number | undefined) ?? 1,
       imageUrl: data.imageUrl as string | undefined,
       ingredients: [] as const,
+      optionalIngredients: [] as const,
       instructions: (data.instructions as string[] | undefined) ?? [],
       notes: (data.notes as string[] | undefined) ?? [],
       nutrition: data.nutrition as StoredPublishedRecipe["nutrition"],

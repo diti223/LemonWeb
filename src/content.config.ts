@@ -9,6 +9,7 @@ const recipes = defineCollection({
     servings: z.number(),
     imageUrl: z.string().url().optional(),
     ingredients: z.array(z.object({ text: z.string() })),
+    optionalIngredients: z.array(z.object({ text: z.string() })).default([]),
     instructions: z.array(z.string()),
     notes: z.array(z.string()).default([]),
     nutrition: z

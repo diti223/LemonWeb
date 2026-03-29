@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { createPublishRecipeUseCase } from "../../src/application/publish-recipe.ts";
-import { FIXED_NOW, fixedClock, fixedPublishingPolicy, InMemoryPublishedRecipeRepository, makePublishRecipeCommand, makeStoredPublishedRecipe } from "../support/published-recipe-fixtures.ts";
+import {
+  FIXED_NOW,
+  fixedClock,
+  fixedPublishingPolicy,
+  InMemoryPublishedRecipeRepository,
+  makeIngredient,
+  makePublishRecipeCommand,
+  makeStoredPublishedRecipe,
+} from "../support/published-recipe-fixtures.ts";
 
 describe("PublishRecipeUseCase", () => {
   it("publishes a stored recipe with author ownership", async () => {
@@ -11,7 +19,9 @@ describe("PublishRecipeUseCase", () => {
       publishingPolicy: fixedPublishingPolicy,
     });
 
-    const result = await useCase.execute(makePublishRecipeCommand());
+    const result = await useCase.execute(makePublishRecipeCommand({
+      optionalIngredients: [makeIngredient("Basil")],
+    }));
 
     expect(result.status).toBe("published");
     if (result.status !== "published") {
@@ -23,6 +33,9 @@ describe("PublishRecipeUseCase", () => {
     expect(result.recipe.slug).toBe("chili-con-carne-a3f8b2c1");
     expect(result.recipe.canonicalUrl).toBe("https://recipes.lemonnutrition.eu/recipes/chili-con-carne-a3f8b2c1");
     expect(result.recipe.publishedAt).toBe(FIXED_NOW);
+    expect(result.recipe.optionalIngredients.map((ingredient) => ingredient.foodItem.name)).toEqual([
+      "Basil",
+    ]);
   });
 
   it("allows the same author to republish an existing recipe id", async () => {

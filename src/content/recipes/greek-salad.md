@@ -11,6 +11,9 @@ ingredients:
   - text: "2 tablespoons extra virgin olive oil"
   - text: "1 tablespoon red wine vinegar"
   - text: "1 teaspoon dried oregano"
+optionalIngredients:
+  - text: "1 handful fresh parsley"
+  - text: "1 small avocado, sliced"
 instructions:
   - "Wash and cut the tomatoes into wedges. Dice the cucumber into bite-sized pieces."
   - "Thinly slice the red onion into half-rings and add to a large bowl with the tomatoes and cucumber."

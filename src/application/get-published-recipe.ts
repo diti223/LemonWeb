@@ -17,7 +17,11 @@ export function createGetPublishedRecipeUseCase(
         return undefined;
       }
 
-      return toRecipePageViewModel(recipe, formatAllIngredients(recipe.ingredients));
+      return toRecipePageViewModel(
+        recipe,
+        formatAllIngredients(recipe.ingredients),
+        formatAllIngredients(recipe.optionalIngredients),
+      );
     },
   };
 }
