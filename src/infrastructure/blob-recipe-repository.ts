@@ -46,7 +46,12 @@ export class BlobRecipeRepository implements PublishedRecipeRepository {
       }
 
       const response = await fetch(blob.url);
-      return (await response.json()) as StoredPublishedRecipe;
+      const data = (await response.json()) as Record<string, unknown>;
+      // Ensure optionalIngredients exists (for recipes stored before this field was added)
+      if (!Array.isArray(data.optionalIngredients)) {
+        data.optionalIngredients = [];
+      }
+      return data as StoredPublishedRecipe;
     } catch {
       return undefined;
     }

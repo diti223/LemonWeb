@@ -1,4 +1,5 @@
 import type { StoredPublishedRecipe } from "./public-recipe.ts";
+import type { ExtractedRecipe } from "./extracted-recipe.ts";
 
 export interface PublishedRecipeRepository {
   getBySlug(slug: string): Promise<StoredPublishedRecipe | undefined>;
@@ -19,4 +20,8 @@ export interface Clock {
 export interface RecipePublishingPolicy {
   createSlug(title: string, id: string): string;
   buildCanonicalUrl(slug: string): string;
+}
+
+export interface RecipeHtmlExtractor {
+  extract(html: string, sourceURL: string): ExtractedRecipe;
 }

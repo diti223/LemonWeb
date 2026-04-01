@@ -1,4 +1,5 @@
 import type { PublishRecipeCommand, RecipeIngredient, RecipeNutrition } from "../domain/public-recipe.ts";
+import type { ExtractRecipeCommand } from "../domain/extracted-recipe.ts";
 
 const MAX_RECIPE_PAYLOAD_BYTES = 1_048_576;
 const MAX_IMAGE_SIZE = 5 * 1_024 * 1_024;
@@ -54,6 +55,24 @@ export async function parsePublishRecipeRequest(request: Request): Promise<Publi
     nutrition: optionalObject<RecipeNutrition>(body.nutrition, "nutrition"),
     originalSourceUrl: optionalWebUrlString(body.originalSourceUrl, "originalSourceUrl"),
   };
+}
+
+export async function parseExtractRecipeRequest(request: Request): Promise<ExtractRecipeCommand> {
+  const body = await parseJsonBody(request);
+  const rawUrl = body.url;
+  if (typeof rawUrl !== "string" || rawUrl.trim().length === 0) {
+    throw new HttpJsonError(400, "Missing or invalid field: url");
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new HttpJsonError(400, "Missing or invalid field: url");
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new HttpJsonError(400, "Missing or invalid field: url");
+  }
+  return { url: rawUrl };
 }
 
 export async function parseUnpublishRecipeRequest(

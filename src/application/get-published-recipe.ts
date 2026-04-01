@@ -20,7 +20,7 @@ export function createGetPublishedRecipeUseCase(
       return toRecipePageViewModel(
         recipe,
         formatAllIngredients(recipe.ingredients),
-        formatAllIngredients(recipe.optionalIngredients),
+        formatAllIngredients(recipe.optionalIngredients ?? []),
       );
     },
   };

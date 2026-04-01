@@ -3,13 +3,15 @@ import { createGetPublishedRecipeJsonUseCase, type GetPublishedRecipeJsonUseCase
 import { createPublishRecipeUseCase, type PublishRecipeUseCase } from "../application/publish-recipe.ts";
 import { createUnpublishRecipeUseCase, type UnpublishRecipeUseCase } from "../application/unpublish-recipe.ts";
 import { createUploadRecipeImageUseCase, type UploadRecipeImageUseCase } from "../application/upload-recipe-image.ts";
+import { createExtractRecipeUseCase, type ExtractRecipeUseCase } from "../application/extract-recipe.ts";
 import { createRecipePublishingPolicy } from "../domain/publishing-policy.ts";
-import type { Clock, ImageStore, PublishedRecipeRepository, RecipePublishingPolicy } from "../domain/ports.ts";
+import type { Clock, ImageStore, PublishedRecipeRepository, RecipePublishingPolicy, RecipeHtmlExtractor } from "../domain/ports.ts";
 import type { RequestAuthenticator } from "./auth.ts";
 import { createBearerRequestAuthenticator } from "./auth.ts";
 import { BlobImageStore } from "./blob-image-store.ts";
 import { BlobRecipeRepository } from "./blob-recipe-repository.ts";
 import { SystemClock } from "./system-clock.ts";
+import { createRecipeHtmlExtractor, fetchHtml } from "./recipe-html-extractor.ts";
 
 const DEFAULT_SITE_URL = "https://recipes.lemonnutrition.eu";
 
@@ -20,6 +22,8 @@ export interface LemonWebApplication {
   readonly uploadRecipeImage: UploadRecipeImageUseCase;
   readonly getPublishedRecipe: GetPublishedRecipeUseCase;
   readonly getPublishedRecipeJson: GetPublishedRecipeJsonUseCase;
+  readonly extractAuthenticator: RequestAuthenticator;
+  readonly extractRecipe: ExtractRecipeUseCase;
 }
 
 export interface LemonWebApplicationDependencies {
@@ -28,6 +32,9 @@ export interface LemonWebApplicationDependencies {
   readonly clock?: Clock;
   readonly publishingPolicy?: RecipePublishingPolicy;
   readonly requestAuthenticator?: RequestAuthenticator;
+  readonly extractAuthenticator?: RequestAuthenticator;
+  readonly htmlExtractor?: RecipeHtmlExtractor;
+  readonly htmlFetcher?: (url: string) => Promise<string>;
 }
 
 export function createLemonWebApplication(
@@ -39,6 +46,13 @@ export function createLemonWebApplication(
   const siteUrl = import.meta.env.PUBLIC_RECIPE_SITE_URL || process.env.PUBLIC_RECIPE_SITE_URL || DEFAULT_SITE_URL;
   const publishingPolicy = dependencies.publishingPolicy ?? createRecipePublishingPolicy(siteUrl);
   const requestAuthenticator = dependencies.requestAuthenticator ?? createBearerRequestAuthenticator();
+  const extractAuthenticator =
+    dependencies.extractAuthenticator ??
+    createBearerRequestAuthenticator(
+      import.meta.env.EXTRACT_API_KEY || process.env.EXTRACT_API_KEY,
+    );
+  const htmlExtractor = dependencies.htmlExtractor ?? createRecipeHtmlExtractor();
+  const htmlFetcher = dependencies.htmlFetcher ?? fetchHtml;
 
   return {
     requestAuthenticator,
@@ -51,5 +65,7 @@ export function createLemonWebApplication(
     uploadRecipeImage: createUploadRecipeImageUseCase(imageStore, repository),
     getPublishedRecipe: createGetPublishedRecipeUseCase(repository),
     getPublishedRecipeJson: createGetPublishedRecipeJsonUseCase(repository),
+    extractAuthenticator,
+    extractRecipe: createExtractRecipeUseCase({ fetchHtml: htmlFetcher, extractor: htmlExtractor }),
   };
 }
