@@ -1,6 +1,7 @@
 import type { Clock, PublishedRecipeRepository, RecipePublishingPolicy } from "../domain/ports.ts";
 import type { PublishRecipeCommand, StoredPublishedRecipe } from "../domain/public-recipe.ts";
 import { toStoredPublishedRecipe } from "../domain/public-recipe.ts";
+import { calculateNutritionFromIngredients } from "../domain/nutrition-calculator.ts";
 
 export interface PublishRecipeUseCase {
   execute(command: PublishRecipeCommand): Promise<PublishRecipeResult>;
@@ -32,7 +33,19 @@ export function createPublishRecipeUseCase(
       }
 
       const slug = publishingPolicy.createSlug(command.title, command.id);
-      const recipe = toStoredPublishedRecipe(command, {
+
+      // Calculate nutrition from ingredients if not provided
+      let commandWithNutrition = command;
+      if (!command.nutrition) {
+        const allIngredients = [...command.ingredients, ...(command.optionalIngredients ?? [])];
+        const calculatedNutrition = calculateNutritionFromIngredients(allIngredients);
+        commandWithNutrition = {
+          ...command,
+          nutrition: calculatedNutrition,
+        };
+      }
+
+      const recipe = toStoredPublishedRecipe(commandWithNutrition, {
         slug,
         canonicalUrl: publishingPolicy.buildCanonicalUrl(slug),
         publishedAt: clock.now().toISOString(),
