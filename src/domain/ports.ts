@@ -1,5 +1,6 @@
 import type { StoredPublishedRecipe } from "./public-recipe.ts";
 import type { ExtractedRecipe } from "./extracted-recipe.ts";
+import type { PublishSystemCatalogCommand, StoredSystemCatalog, SystemCatalogManifest, SystemCatalogName } from "./system-catalog.ts";
 
 export interface PublishedRecipeRepository {
   getBySlug(slug: string): Promise<StoredPublishedRecipe | undefined>;
@@ -24,4 +25,10 @@ export interface RecipePublishingPolicy {
 
 export interface RecipeHtmlExtractor {
   extract(html: string, sourceURL: string): ExtractedRecipe;
+}
+
+export interface SystemCatalogRepository {
+  getManifest(): Promise<SystemCatalogManifest | undefined>;
+  getCatalog(catalog: SystemCatalogName): Promise<StoredSystemCatalog | undefined>;
+  saveCatalog(command: PublishSystemCatalogCommand): Promise<SystemCatalogManifest>;
 }
