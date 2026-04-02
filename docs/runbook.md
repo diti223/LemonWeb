@@ -15,20 +15,36 @@ This is the operational checklist for the public recipe share surface.
 Set these environment variables in Vercel for the LemonWeb project:
 
 - `PUBLIC_RECIPE_SITE_URL=https://recipes.lemonnutrition.eu`
-- `PUBLISH_API_KEY=<shared bearer token for Lemon clients>`
+- `LEMON_WEB_CAPABILITY_TOKEN_SECRET=<server-only signing secret>`
+- `OPENAI_API_KEY=<server-only provider key>`
+- `ANTHROPIC_API_KEY=<server-only provider key>`
+- `GEMINI_API_KEY=<server-only provider key>`
+- `KV_REST_API_URL=<Vercel KV URL>`
+- `KV_REST_API_TOKEN=<Vercel KV token>`
+- `APP_ATTEST_BUNDLE_IDENTIFIER=<bundle id for the iOS app>`
+- `APP_ATTEST_TEAM_IDENTIFIER=<Apple team id>`
+- `APP_ATTEST_ALLOW_DEVELOPMENT=true|false`
+- `AI_IMAGE_ALLOWLIST_INSTALL_IDS=<comma-separated install ids allowed for Magic Photo>`
 - `BLOB_READ_WRITE_TOKEN=<Vercel Blob write token>`
 
 The server uses Blob for the canonical public recipe store and public hero images.
 
-**Important:** After setting env vars in Vercel, you must redeploy for them to take effect. Push to trunk to trigger a new deployment.
+## Secret Model
 
-Verify env vars are loaded:
-```bash
-curl -X POST https://recipes.lemonnutrition.eu/api/images \
-  -H "Authorization: Bearer <PUBLISH_API_KEY>"
-```
+LemonWeb owns the privileged credentials. The iOS app and share extension must not ship provider keys or the publish/extract bearer tokens.
 
-Should return `200` with success or proper error, not `401 Unauthorized`.
+Treat these as server-only:
+
+- OpenAI / Anthropic / Google API keys
+- `LEMON_WEB_CAPABILITY_TOKEN_SECRET`
+- `KV_REST_API_URL`
+- `KV_REST_API_TOKEN`
+- App Attest bundle/team identifiers
+- `AI_IMAGE_ALLOWLIST_INSTALL_IDS`
+
+If any of those values show up in the built iOS `.app` or `.appex`, the release is not safe to ship.
+
+**Important:** After setting env vars in Vercel, you must redeploy for them to take effect. Push to `trunk` to trigger a new deployment.
 
 ## Universal Links
 
@@ -44,11 +60,10 @@ Expect `200` and `Content-Type: application/json`.
 
 ## Publish Auth
 
-This release is internal/TestFlight-first.
-
 - Keep the bearer token boundary on the server.
-- Do not ship broad public publish access until the app-side publish flow is hardened.
+- The app should only ever use short-lived capability tokens issued by `/api/device/session`.
 - Upload images first, then publish recipes.
+- Prefer server-side allowlists and short-lived capability tokens for expensive paths.
 
 ## Image Flow
 
@@ -56,3 +71,15 @@ This release is internal/TestFlight-first.
 - Keep one optimized hero image per recipe.
 - Use the recipe id as the upload key so upload works before publish and survives slug changes.
 - Keep the server cap simple at 5MB.
+
+## Release Check
+
+Before shipping a client or extension build, run the built-artifact secret scan from the app repo against the compiled `.app` and `.appex`.
+
+Example:
+
+```bash
+./scripts/scan-built-artifacts-for-secrets.sh \
+  /path/to/DerivedData/Build/Products/Debug-iphoneos/Lemon.app \
+  /path/to/DerivedData/Build/Products/Debug-iphoneos/Lemon\ Web\ Importer.appex
+```

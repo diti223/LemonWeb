@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { unauthorizedResponse } from "../../infrastructure/auth.ts";
+import { authorizeCapabilityRequest } from "../../infrastructure/capability-auth.ts";
 import { createLemonWebApplication } from "../../infrastructure/composition-root.ts";
 import { HttpJsonError, jsonErrorResponse, jsonResponse, parseImageUploadRequest } from "../../infrastructure/http.ts";
 
@@ -10,12 +10,20 @@ export function createUploadImageRoute(
 ): APIRoute {
   return async ({ request, url }) => {
     const application = resolveApplication();
-    if (!application.requestAuthenticator.isAuthorized(request)) {
-      return unauthorizedResponse();
-    }
 
     try {
+      const claims = await authorizeCapabilityRequest(request, {
+        requiredScope: "images:write",
+        rateLimitScope: "images:write",
+        rateLimitLimit: 30,
+        rateLimitWindowSeconds: 60 * 60,
+        rateLimitIpLimit: 120,
+        rateLimitIpWindowSeconds: 60 * 60,
+      });
       const input = await parseImageUploadRequest(request, url);
+      if (input.authorId !== claims.installId) {
+        return jsonErrorResponse(new HttpJsonError(403, "Recipe belongs to a different author"));
+      }
       const result = await application.uploadRecipeImage.execute(input);
       if (result.status === "forbidden") {
         return jsonErrorResponse(new HttpJsonError(403, "Recipe belongs to a different author"));

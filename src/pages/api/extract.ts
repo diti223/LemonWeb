@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { unauthorizedResponse } from "../../infrastructure/auth.ts";
+import { authorizeCapabilityRequest } from "../../infrastructure/capability-auth.ts";
 import { createLemonWebApplication } from "../../infrastructure/composition-root.ts";
 import {
   HttpJsonError,
@@ -15,11 +15,16 @@ export function createExtractRecipeRoute(
 ): APIRoute {
   return async ({ request }) => {
     const application = resolveApplication();
-    if (!application.extractAuthenticator.isAuthorized(request)) {
-      return unauthorizedResponse();
-    }
 
     try {
+      await authorizeCapabilityRequest(request, {
+        requiredScope: "extract",
+        rateLimitScope: "extract",
+        rateLimitLimit: 60,
+        rateLimitWindowSeconds: 60 * 60,
+        rateLimitIpLimit: 120,
+        rateLimitIpWindowSeconds: 60 * 60,
+      });
       const command = await parseExtractRecipeRequest(request);
       const result = await application.extractRecipe.execute(command);
       return jsonResponse(result, 200);

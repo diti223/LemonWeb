@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { validateAuth } from "../../src/infrastructure/auth.ts";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { createBearerRequestAuthenticator, validateAuth } from "../../src/infrastructure/auth.ts";
 
-describe("validateAuth", () => {
+describe("auth", () => {
   const TEST_KEY = "test-api-key-12345";
 
   beforeEach(() => {
@@ -31,6 +31,15 @@ describe("validateAuth", () => {
       headers: { Authorization: `Bearer ${TEST_KEY}` },
     });
     expect(validateAuth(req)).toBe(true);
+  });
+
+  it("authorizes against an explicit expected token seam", () => {
+    const authenticator = createBearerRequestAuthenticator("explicit-token");
+    const req = new Request("https://example.com", {
+      method: "POST",
+      headers: { Authorization: "Bearer explicit-token" },
+    });
+    expect(authenticator.isAuthorized(req)).toBe(true);
   });
 
   it("returns false when Bearer token does not match", () => {

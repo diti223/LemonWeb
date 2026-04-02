@@ -59,14 +59,12 @@ export function createLemonWebApplication(
   const systemCatalogRepository = dependencies.systemCatalogRepository ?? new BlobSystemCatalogRepository();
   const imageStore = dependencies.imageStore ?? new BlobImageStore();
   const clock = dependencies.clock ?? new SystemClock();
-  const siteUrl = import.meta.env.PUBLIC_RECIPE_SITE_URL || process.env.PUBLIC_RECIPE_SITE_URL || DEFAULT_SITE_URL;
+  const siteUrl = readEnv("PUBLIC_RECIPE_SITE_URL") || DEFAULT_SITE_URL;
   const publishingPolicy = dependencies.publishingPolicy ?? createRecipePublishingPolicy(siteUrl);
   const requestAuthenticator = dependencies.requestAuthenticator ?? createBearerRequestAuthenticator();
   const extractAuthenticator =
     dependencies.extractAuthenticator ??
-    createBearerRequestAuthenticator(
-      import.meta.env.EXTRACT_API_KEY || process.env.EXTRACT_API_KEY,
-    );
+    createBearerRequestAuthenticator(readEnv("EXTRACT_API_KEY"));
   const htmlExtractor = dependencies.htmlExtractor ?? createRecipeHtmlExtractor();
   const htmlFetcher = dependencies.htmlFetcher ?? fetchHtml;
 
@@ -87,4 +85,15 @@ export function createLemonWebApplication(
     extractAuthenticator,
     extractRecipe: createExtractRecipeUseCase({ fetchHtml: htmlFetcher, extractor: htmlExtractor }),
   };
+}
+
+function readEnv(name: string): string | undefined {
+  const env = (import.meta as { env?: Record<string, string | undefined> }).env;
+  const value = env?.[name] ?? process.env[name];
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }

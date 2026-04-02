@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { unauthorizedResponse } from "../../infrastructure/auth.ts";
+import { authorizeCapabilityRequest } from "../../infrastructure/capability-auth.ts";
 import { createLemonWebApplication } from "../../infrastructure/composition-root.ts";
 import { HttpJsonError, jsonErrorResponse, jsonResponse, parsePublishRecipeRequest } from "../../infrastructure/http.ts";
 
@@ -10,13 +10,21 @@ export function createPublishRecipeRoute(
 ): APIRoute {
   return async ({ request }) => {
     const application = resolveApplication();
-    if (!application.requestAuthenticator.isAuthorized(request)) {
-      return unauthorizedResponse();
-    }
 
     let publishContext: Record<string, unknown> | undefined;
     try {
+      const claims = await authorizeCapabilityRequest(request, {
+        requiredScope: "publish",
+        rateLimitScope: "publish",
+        rateLimitLimit: 30,
+        rateLimitWindowSeconds: 60 * 60,
+        rateLimitIpLimit: 120,
+        rateLimitIpWindowSeconds: 60 * 60,
+      });
       const command = await parsePublishRecipeRequest(request);
+      if (command.authorId !== claims.installId) {
+        return jsonResponse({ error: "Recipe belongs to a different author" }, 403);
+      }
       publishContext = {
         id: command.id,
         authorId: command.authorId,

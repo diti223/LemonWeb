@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { unauthorizedResponse } from "../../../infrastructure/auth.ts";
+import { authorizeCapabilityRequest } from "../../../infrastructure/capability-auth.ts";
 import { createLemonWebApplication } from "../../../infrastructure/composition-root.ts";
 import { HttpJsonError, jsonErrorResponse, jsonResponse, parseUnpublishRecipeRequest } from "../../../infrastructure/http.ts";
 
@@ -10,12 +10,20 @@ export function createDeleteRecipeRoute(
 ): APIRoute {
   return async ({ params, request }) => {
     const application = resolveApplication();
-    if (!application.requestAuthenticator.isAuthorized(request)) {
-      return unauthorizedResponse();
-    }
 
     try {
+      const claims = await authorizeCapabilityRequest(request, {
+        requiredScope: "recipes:delete",
+        rateLimitScope: "recipes:delete",
+        rateLimitLimit: 30,
+        rateLimitWindowSeconds: 60 * 60,
+        rateLimitIpLimit: 120,
+        rateLimitIpWindowSeconds: 60 * 60,
+      });
       const input = await parseUnpublishRecipeRequest(request, params.id);
+      if (input.authorId !== claims.installId) {
+        return jsonResponse({ error: "Recipe belongs to a different author" }, 403);
+      }
       const result = await application.unpublishRecipe.execute(input);
 
       if (result === "deleted") {

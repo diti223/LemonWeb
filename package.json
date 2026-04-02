@@ -15,8 +15,10 @@
     "@astrojs/vercel": "^10.0.2",
     "@tailwindcss/vite": "^4.2.2",
     "@vercel/blob": "^2.3.1",
+    "@vercel/kv": "^3.0.0",
     "astro": "^6.0.8",
     "cheerio": "^1.0.0",
+    "node-app-attest": "^1.0.1",
     "tailwindcss": "^4.2.2",
     "tsx": "^4.21.0",
     "vitest": "^4.1.1"

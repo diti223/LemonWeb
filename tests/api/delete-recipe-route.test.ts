@@ -1,7 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createLemonWebApplication } from "../../src/infrastructure/composition-root.ts";
 import { createDeleteRecipeRoute } from "../../src/pages/api/recipes/[id].ts";
 import { fixedClock, fixedPublishingPolicy, InMemoryPublishedRecipeRepository, makeStoredPublishedRecipe } from "../support/published-recipe-fixtures.ts";
+import { makeCapabilityToken, TEST_CAPABILITY_SECRET } from "../support/capability-token-fixtures.ts";
+
+beforeEach(() => {
+  process.env.LEMON_WEB_CAPABILITY_TOKEN_SECRET = TEST_CAPABILITY_SECRET;
+});
+
+afterEach(() => {
+  delete process.env.LEMON_WEB_CAPABILITY_TOKEN_SECRET;
+});
 
 describe("DELETE /api/recipes/[id]", () => {
   it("returns 403 when the request author does not own the recipe", async () => {
@@ -9,7 +18,6 @@ describe("DELETE /api/recipes/[id]", () => {
       repository: new InMemoryPublishedRecipeRepository([makeStoredPublishedRecipe()]),
       clock: fixedClock,
       publishingPolicy: fixedPublishingPolicy,
-      requestAuthenticator: { isAuthorized: () => true },
     }));
 
     const response = await handler({
@@ -20,6 +28,7 @@ describe("DELETE /api/recipes/[id]", () => {
         method: "DELETE",
         headers: {
           "content-type": "application/json",
+          Authorization: `Bearer ${makeCapabilityToken("different999", ["recipes:delete"])}`,
         },
         body: JSON.stringify({
           authorId: "different999",
@@ -35,7 +44,6 @@ describe("DELETE /api/recipes/[id]", () => {
       repository: new InMemoryPublishedRecipeRepository([makeStoredPublishedRecipe()]),
       clock: fixedClock,
       publishingPolicy: fixedPublishingPolicy,
-      requestAuthenticator: { isAuthorized: () => true },
     }));
 
     const response = await handler({
@@ -46,6 +54,7 @@ describe("DELETE /api/recipes/[id]", () => {
         method: "DELETE",
         headers: {
           "content-type": "application/json",
+          Authorization: `Bearer ${makeCapabilityToken("abc123xyz789", ["recipes:delete"])}`,
         },
         body: JSON.stringify({
           authorId: "abc123xyz789",
