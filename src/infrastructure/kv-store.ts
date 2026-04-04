@@ -1,4 +1,5 @@
 import { kv } from "@vercel/kv";
+import { createClient } from "redis";
 
 export interface KeyValueStore {
   get<T>(key: string): Promise<T | null>;
@@ -24,6 +25,55 @@ export function createVercelKvStore(): KeyValueStore {
     },
     async expire(key: string, seconds: number): Promise<void> {
       await kv.expire(key, seconds);
+    },
+  };
+}
+
+export function createRedisStore(): KeyValueStore {
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) {
+    throw new Error("REDIS_URL environment variable is not set");
+  }
+
+  const client = createClient({ url: redisUrl });
+
+  // Connect to Redis
+  const connectPromise = client.connect().catch((error) => {
+    console.error("Failed to connect to Redis:", error);
+    throw error;
+  });
+
+  return {
+    async get<T>(key: string): Promise<T | null> {
+      await connectPromise;
+      const value = await client.get(key);
+      if (!value) return null;
+      try {
+        return JSON.parse(value) as T;
+      } catch {
+        return value as T;
+      }
+    },
+    async set<T>(key: string, value: T, options?: { readonly ex?: number }): Promise<void> {
+      await connectPromise;
+      const jsonValue = JSON.stringify(value);
+      if (options?.ex) {
+        await client.setEx(key, options.ex, jsonValue);
+      } else {
+        await client.set(key, jsonValue);
+      }
+    },
+    async del(key: string): Promise<void> {
+      await connectPromise;
+      await client.del(key);
+    },
+    async incr(key: string): Promise<number> {
+      await connectPromise;
+      return client.incr(key);
+    },
+    async expire(key: string, seconds: number): Promise<void> {
+      await connectPromise;
+      await client.expire(key, seconds);
     },
   };
 }

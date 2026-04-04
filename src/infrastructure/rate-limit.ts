@@ -1,4 +1,4 @@
-import { createMemoryKvStore, createVercelKvStore, type KeyValueStore } from "./kv-store.ts";
+import { createMemoryKvStore, createVercelKvStore, createRedisStore, type KeyValueStore } from "./kv-store.ts";
 import { toUnixSeconds } from "./signed-token.ts";
 
 export interface RateLimitQuota {
@@ -135,13 +135,24 @@ export function createVercelKvRateLimiter(store?: KeyValueStore): RateLimiter {
 }
 
 function createDefaultRateLimitStore(): KeyValueStore {
-  const hasVercelKvConfiguration = Boolean(readEnv("KV_REST_API_URL") && readEnv("KV_REST_API_TOKEN"));
-
-  if (!hasVercelKvConfiguration) {
-    return createMemoryKvStore();
+  // Try Redis first (supports REDIS_URL)
+  const hasRedisUrl = Boolean(readEnv("REDIS_URL"));
+  if (hasRedisUrl) {
+    try {
+      return createRedisStore();
+    } catch (error) {
+      console.warn("Failed to create Redis store, falling back to Vercel KV or memory:", error);
+    }
   }
 
-  return createVercelKvStore();
+  // Fall back to Vercel KV
+  const hasVercelKvConfiguration = Boolean(readEnv("KV_REST_API_URL") && readEnv("KV_REST_API_TOKEN"));
+  if (hasVercelKvConfiguration) {
+    return createVercelKvStore();
+  }
+
+  // Fall back to in-memory
+  return createMemoryKvStore();
 }
 
 function readEnv(name: string): string | undefined {

@@ -29,6 +29,33 @@ Set these environment variables in Vercel for the LemonWeb project:
 
 The server uses Blob for the canonical public recipe store and public hero images.
 
+## Setting Up Vercel KV (Rate Limiting)
+
+Rate limiting across server instances requires a shared key-value store. Without KV, each server instance has its own in-memory rate limit counters, which defeats rate limiting under load.
+
+### Steps
+
+1. **Create KV Database**: Go to [vercel.com/dashboard](https://vercel.com/dashboard) → **Storage** → **Create Database** → **KV**
+   - Name: `lemon-web-kv`
+   - Region: Pick closest to users or default
+   - Click **Create**
+
+2. **Copy Connection Strings**: Once created, Vercel displays:
+   - `KV_REST_API_URL` (starts with `https://...kv.vercel.sh`)
+   - `KV_REST_API_TOKEN` (long base64 string)
+
+3. **Add to LemonWeb Project**:
+   - Go to LemonWeb project in Vercel → **Settings** → **Environment Variables**
+   - Add both `KV_REST_API_URL` and `KV_REST_API_TOKEN`
+   - Set for: **Production, Preview, Development**
+
+4. **Redeploy**: Push to trunk to activate:
+   ```bash
+   git push origin trunk
+   ```
+
+Without KV configured, the server falls back to in-memory rate limiting, which only protects a single instance.
+
 ## Secret Model
 
 LemonWeb owns the privileged credentials. The iOS app and share extension must not ship provider keys or the publish/extract bearer tokens.
