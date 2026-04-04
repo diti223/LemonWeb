@@ -19,8 +19,7 @@ Set these environment variables in Vercel for the LemonWeb project:
 - `OPENAI_API_KEY=<server-only provider key>`
 - `ANTHROPIC_API_KEY=<server-only provider key>`
 - `GEMINI_API_KEY=<server-only provider key>`
-- `KV_REST_API_URL=<Vercel KV URL>`
-- `KV_REST_API_TOKEN=<Vercel KV token>`
+- `REDIS_URL=<Redis connection URL>` (for rate limiting and sessions)
 - `APP_ATTEST_BUNDLE_IDENTIFIER=<bundle id for the iOS app>`
 - `APP_ATTEST_TEAM_IDENTIFIER=<Apple team id>`
 - `APP_ATTEST_ALLOW_DEVELOPMENT=true|false`
@@ -29,47 +28,71 @@ Set these environment variables in Vercel for the LemonWeb project:
 
 The server uses Blob for the canonical public recipe store and public hero images.
 
-## Setting Up Vercel KV (Rate Limiting)
+## Setting Up Redis (Rate Limiting & Device Sessions)
 
-Rate limiting across server instances requires a shared key-value store. Without KV, each server instance has its own in-memory rate limit counters, which defeats rate limiting under load.
+Rate limiting and device session storage require a shared key-value store. Without Redis, each server instance has its own in-memory counters, which defeats rate limiting under load.
+
+### Options
+
+**Option A: Use Vercel's Managed Redis**
+1. Go to [vercel.com/dashboard](https://vercel.com/dashboard) → **Storage** → **Create Database** → **Redis**
+2. Name: `lemon-web-redis`, Region: closest to users
+3. Vercel auto-sets `REDIS_URL` in environment variables
+
+**Option B: Use Upstash or Redis Cloud**
+1. Create a Redis database at [Upstash](https://upstash.com) or [Redis Cloud](https://cloud.redis.io)
+2. Copy the connection URL (should be `redis://...`)
 
 ### Steps
 
-1. **Create KV Database**: Go to [vercel.com/dashboard](https://vercel.com/dashboard) → **Storage** → **Create Database** → **KV**
-   - Name: `lemon-web-kv`
-   - Region: Pick closest to users or default
-   - Click **Create**
-
-2. **Copy Connection Strings**: Once created, Vercel displays:
-   - `KV_REST_API_URL` (starts with `https://...kv.vercel.sh`)
-   - `KV_REST_API_TOKEN` (long base64 string)
-
-3. **Add to LemonWeb Project**:
+1. **Get REDIS_URL**: From your Redis provider's dashboard
+2. **Add to LemonWeb Project**:
    - Go to LemonWeb project in Vercel → **Settings** → **Environment Variables**
-   - Add both `KV_REST_API_URL` and `KV_REST_API_TOKEN`
+   - Add `REDIS_URL=<your connection string>`
    - Set for: **Production, Preview, Development**
-
-4. **Redeploy**: Push to trunk to activate:
+3. **Redeploy**: Push to trunk:
    ```bash
    git push origin trunk
    ```
 
-Without KV configured, the server falls back to in-memory rate limiting, which only protects a single instance.
+The backend automatically uses Redis for:
+- Rate limiting across instances
+- Device session storage
+- Rate limit windows and token tracking
 
-## Secret Model
+Without Redis, the server falls back to in-memory storage (doesn't survive redeploys).
 
-LemonWeb owns the privileged credentials. The iOS app and share extension must not ship provider keys or the publish/extract bearer tokens.
+## Device Attestation & Security Model
 
-Treat these as server-only:
+### How It Works
+
+1. **iOS app** requests a cryptographic challenge from `/api/device/challenge`
+2. **Backend** signs the challenge using `LEMON_WEB_CAPABILITY_TOKEN_SECRET`
+3. **iOS app** uses Apple's DeviceCheck framework to attest the device is real
+4. **Backend** verifies the attestation using Apple's public keys
+5. **Backend** issues a short-lived capability token (valid for 24 hours by default)
+6. **iOS app** uses the token for all API requests via `Authorization: Bearer <token>`
+7. **Backend** verifies the token signature on every request
+8. **Rate limiting** prevents token abuse (30 requests/hour per install ID, 120/hour per IP)
+
+If someone tries to abuse a token:
+- After 30 requests, they're rate-limited for 1 hour
+- They must wait, then request a new challenge
+- New device attestation is required each time
+- All tokens are signed and expire after 24 hours
+
+### Server-Only Credentials
+
+LemonWeb owns all privileged credentials. The iOS app must never ship these:
 
 - OpenAI / Anthropic / Google API keys
-- `LEMON_WEB_CAPABILITY_TOKEN_SECRET`
-- `KV_REST_API_URL`
-- `KV_REST_API_TOKEN`
+- `LEMON_WEB_CAPABILITY_TOKEN_SECRET` (token signing secret)
+- `REDIS_URL` (database connection)
 - App Attest bundle/team identifiers
 - `AI_IMAGE_ALLOWLIST_INSTALL_IDS`
+- `BLOB_READ_WRITE_TOKEN`
 
-If any of those values show up in the built iOS `.app` or `.appex`, the release is not safe to ship.
+**Pre-release check**: Run the built-artifact secret scan against compiled `.app` and `.appex` to ensure no secrets are embedded.
 
 **Important:** After setting env vars in Vercel, you must redeploy for them to take effect. Push to `trunk` to trigger a new deployment.
 
