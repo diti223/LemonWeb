@@ -35,6 +35,7 @@ interface DeviceSessionRequestBody {
   keyId?: string;
   proof?:
     | { kind: "attestation"; attestation: string }
+    | { kind: "debug-attestation"; attestation: string }
     | { kind: "assertion"; assertion: string };
 }
 
@@ -203,6 +204,9 @@ function optionalProof(value: unknown): DeviceSessionRequestBody["proof"] {
   if (record.kind === "attestation" && typeof record.attestation === "string") {
     return { kind: "attestation", attestation: record.attestation };
   }
+  if (record.kind === "debug-attestation" && typeof record.attestation === "string") {
+    return { kind: "debug-attestation", attestation: record.attestation };
+  }
   if (record.kind === "assertion" && typeof record.assertion === "string") {
     return { kind: "assertion", assertion: record.assertion };
   }
@@ -239,14 +243,21 @@ function validateProofIfProvided(body: DeviceSessionRequestBody, options: Device
     return;
   }
 
+  const bundleIdentifier = options.bundleIdentifier?.trim() || readEnv("APP_ATTEST_BUNDLE_IDENTIFIER") || "";
+  const teamIdentifier = options.teamIdentifier?.trim() || readEnv("APP_ATTEST_TEAM_IDENTIFIER") || "";
+  const allowDevelopmentEnvironment = options.allowDevelopmentEnvironment ?? readEnvBool("APP_ATTEST_ALLOW_DEVELOPMENT");
+
+  if (body.proof.kind === "debug-attestation") {
+    if (!allowDevelopmentEnvironment) {
+      throw new HttpJsonError(403, "Debug attestation not allowed in production");
+    }
+    return;
+  }
+
   const verifier = options.appAttestVerifier;
   if (!verifier) {
     throw new HttpJsonError(400, "Missing attestation configuration");
   }
-
-  const bundleIdentifier = options.bundleIdentifier?.trim() || readEnv("APP_ATTEST_BUNDLE_IDENTIFIER") || "";
-  const teamIdentifier = options.teamIdentifier?.trim() || readEnv("APP_ATTEST_TEAM_IDENTIFIER") || "";
-  const allowDevelopmentEnvironment = options.allowDevelopmentEnvironment ?? readEnvBool("APP_ATTEST_ALLOW_DEVELOPMENT");
 
   if (!body.challenge || !body.keyId || !bundleIdentifier || !teamIdentifier) {
     throw new HttpJsonError(400, "Missing attestation configuration");
