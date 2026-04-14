@@ -56,6 +56,17 @@ LemonWeb is a **recipe publishing platform** with a two-subdomain architecture:
 
 ---
 
+## 🧪 Local Debugging
+
+- Prefer `npm test` for backend verification.
+- Prefer `npm run dev` for normal local development.
+- Use `npm run dev:debug` when you need breakpoints in Astro/Vercel route handlers.
+- Attach the debugger to port `9229`.
+- When you change request/response behavior, add or update tests at the same time so the auth and publish flows stay easy to reason about.
+- Keep the backend contract compatible with the iOS app's localhost switch and the capability-session diagnostic flow.
+
+---
+
 ## 🔐 Environment Variables (Vercel)
 
 Set these in **Vercel Settings → Environment Variables** for production:
