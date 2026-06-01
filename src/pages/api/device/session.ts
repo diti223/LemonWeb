@@ -263,9 +263,10 @@ function validateProofIfProvided(body: DeviceSessionRequestBody, options: Device
     return;
   }
 
-  const bundleIdentifier = options.bundleIdentifier?.trim() || readEnv("APP_ATTEST_BUNDLE_IDENTIFIER") || "";
-  const teamIdentifier = options.teamIdentifier?.trim() || readEnv("APP_ATTEST_TEAM_IDENTIFIER") || "";
+  const bundleIdentifier = readOptionalEnv("APP_ATTEST_BUNDLE_IDENTIFIER", options.bundleIdentifier);
+  const teamIdentifier = readOptionalEnv("APP_ATTEST_TEAM_IDENTIFIER", options.teamIdentifier);
   const allowDevelopmentEnvironment = options.allowDevelopmentEnvironment ?? readEnvBool("APP_ATTEST_ALLOW_DEVELOPMENT");
+  const verifier = options.appAttestVerifier ?? createNodeAppAttestVerifier();
 
   if (body.proof.kind === "debug-attestation") {
     if (!allowDevelopmentEnvironment) {
@@ -274,13 +275,8 @@ function validateProofIfProvided(body: DeviceSessionRequestBody, options: Device
     return;
   }
 
-  const verifier = options.appAttestVerifier;
-  if (!verifier) {
-    throw new HttpJsonError(400, "Missing attestation configuration");
-  }
-
   if (!body.challenge || !body.keyId || !bundleIdentifier || !teamIdentifier) {
-    throw new HttpJsonError(400, "Missing attestation configuration");
+    throw new HttpJsonError(500, missingAttestationConfigMessage(bundleIdentifier, teamIdentifier));
   }
 
   if (body.proof.kind === "attestation") {
@@ -295,7 +291,23 @@ function validateProofIfProvided(body: DeviceSessionRequestBody, options: Device
     return;
   }
 
-  throw new HttpJsonError(400, "Missing attestation configuration");
+  throw new HttpJsonError(400, "Unsupported proof kind");
+}
+
+function missingAttestationConfigMessage(bundleIdentifier: string, teamIdentifier: string): string {
+  const missing: string[] = [];
+  if (!bundleIdentifier) {
+    missing.push("APP_ATTEST_BUNDLE_IDENTIFIER");
+  }
+  if (!teamIdentifier) {
+    missing.push("APP_ATTEST_TEAM_IDENTIFIER");
+  }
+
+  if (missing.length === 0) {
+    return "Missing attestation configuration";
+  }
+
+  return `Missing attestation configuration: ${missing.join(", ")}`;
 }
 
 function issueSimpleSession(
