@@ -13,6 +13,7 @@ type DeviceSessionStatusRouteInput = DeviceSessionStatusRouteOptions | (() => De
 
 export function createDeviceSessionStatusRoute(input: DeviceSessionStatusRouteInput = {}): APIRoute {
   return async ({ request }) => {
+    let stage = "bearer-token";
     try {
       const options = typeof input === "function" ? input() : input;
       const secret = readSecret(options.tokenSecret ?? readEnv("LEMON_WEB_CAPABILITY_TOKEN_SECRET") ?? "");
@@ -34,10 +35,16 @@ export function createDeviceSessionStatusRoute(input: DeviceSessionStatusRouteIn
       );
     } catch (error) {
       if (error instanceof HttpJsonError) {
+        console.error("[LemonWebDeviceSessionStatusRoute] Request failed", {
+          stage,
+          status: error.status,
+          message: error.message,
+          hasAuthorizationHeader: Boolean(request.headers.get("Authorization")),
+        });
         return jsonErrorResponse(error);
       }
 
-      console.error("[LemonWebDeviceSessionStatusRoute] Unhandled failure", { error });
+      console.error("[LemonWebDeviceSessionStatusRoute] Unhandled failure", { stage, error });
       return jsonResponse({ error: "Internal session status error" }, 500);
     }
   };

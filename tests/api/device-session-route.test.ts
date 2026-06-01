@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createCapabilityTokenService } from "../../src/infrastructure/auth.ts";
 import { TEST_CAPABILITY_SECRET } from "../support/capability-token-fixtures.ts";
+import { createDeviceChallengeRoute } from "../../src/pages/api/device/challenge.ts";
 import { createDeviceSessionRoute } from "../../src/pages/api/device/session.ts";
 
 vi.mock("../../src/infrastructure/kv-store.ts", () => ({
@@ -190,6 +191,52 @@ describe("POST /api/device/session", () => {
     } as any);
 
     expect(response.status).toBe(401);
+  });
+
+  it("accepts a challenge issued by /api/device/challenge", async () => {
+    const challengeHandler = createDeviceChallengeRoute({
+      secret: TEST_CAPABILITY_SECRET,
+      ttlSeconds: 3600,
+      rateLimiter: allowAllRateLimiter as any,
+    });
+    const sessionHandler = createDeviceSessionRoute({
+      tokenSecret: TEST_CAPABILITY_SECRET,
+      challengeSecret: TEST_CAPABILITY_SECRET,
+      ttlSeconds: 3600,
+      rateLimiter: allowAllRateLimiter as any,
+      allowDevelopmentEnvironment: true,
+    });
+
+    const challengeResponse = await challengeHandler({
+      request: new Request("https://recipes.lemonnutrition.eu/api/device/challenge?installId=install-123", {
+        method: "GET",
+      }),
+    } as any);
+
+    expect(challengeResponse.status).toBe(200);
+    const challengeBody = await challengeResponse.json();
+
+    const sessionResponse = await sessionHandler({
+      request: new Request("https://recipes.lemonnutrition.eu/api/device/session", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          installId: "install-123",
+          challenge: challengeBody.challenge,
+          proof: {
+            kind: "debug-attestation",
+            attestation: "debug-attestation-token",
+          },
+        }),
+      }),
+    } as any);
+
+    expect(sessionResponse.status).toBe(200);
+    const body = await sessionResponse.json();
+    expect(body.installId).toBe("install-123");
+    expect(body.token).toBeTruthy();
   });
 
   it("returns 429 when the challenge route is rate limited", async () => {

@@ -11,6 +11,19 @@ LemonWeb is the backend that the iOS app talks to when it publishes recipes, che
 - stores published recipe data and images
 - handles the device-session auth flow used by the app Settings screen
 
+## API Route Map
+
+Astro uses file-based routing for backend endpoints. In this repo, anything under `src/pages/api/` becomes an API route:
+
+- `src/pages/api/device/challenge.ts` -> `GET /api/device/challenge`
+- `src/pages/api/device/session.ts` -> `POST /api/device/session`
+- `src/pages/api/device/session/status.ts` -> `GET /api/device/session/status`
+- `src/pages/api/recipes.ts` -> `GET` and `POST /api/recipes`
+- `src/pages/api/recipes/[id].ts` -> `DELETE /api/recipes/:id`
+- `src/pages/api/images.ts` -> `POST /api/images`
+
+The file path is the URL path, and the exported HTTP verb functions (`GET`, `POST`, `DELETE`, etc.) decide which methods are allowed.
+
 ## Local development
 
 Start the backend with:

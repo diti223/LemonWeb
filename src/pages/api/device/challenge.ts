@@ -1,6 +1,6 @@
-import { randomUUID } from "node:crypto";
 import type { APIRoute } from "astro";
-import { createSignedTokenService } from "../../../infrastructure/signed-token.ts";
+import { randomUUID } from "node:crypto";
+import { createCapabilityTokenService } from "../../../infrastructure/auth.ts";
 import { HttpJsonError, jsonErrorResponse, jsonResponse } from "../../../infrastructure/http.ts";
 import { buildRateLimitKey, createVercelKvRateLimiter, type RateLimiter } from "../../../infrastructure/rate-limit.ts";
 
@@ -14,12 +14,15 @@ export interface DeviceChallengeRouteOptions {
 
 export function createDeviceChallengeRoute(options: DeviceChallengeRouteOptions = {}): APIRoute {
   return async ({ request }) => {
+    let installId: string | undefined;
+    let stage = "parse";
     try {
-      const installId = new URL(request.url).searchParams.get("installId");
+      installId = new URL(request.url).searchParams.get("installId")?.trim() || undefined;
       if (!installId) {
         throw new HttpJsonError(400, "Missing query parameter: installId");
       }
 
+      stage = "rate-limit";
       const rateLimiter = options.rateLimiter ?? createVercelKvRateLimiter();
       const now = Date.now();
       const installDecision = await rateLimiter.consume(
@@ -35,42 +38,36 @@ export function createDeviceChallengeRoute(options: DeviceChallengeRouteOptions 
       const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || undefined;
       if (ip) {
         const ipDecision = await rateLimiter.consume(
-        buildRateLimitKey("device:challenge:ip", ip, 60 * 60, now),
-        120,
-        60 * 60,
-        now,
-      );
+          buildRateLimitKey("device:challenge:ip", ip, 60 * 60, now),
+          120,
+          60 * 60,
+          now,
+        );
         if (ipDecision && !ipDecision.allowed) {
           return jsonResponse({ error: "Rate limit exceeded" }, 429);
         }
       }
 
+      stage = "challenge-signing";
       const secret =
         options.secret ??
         readEnv("LEMON_WEB_CAPABILITY_TOKEN_SECRET") ??
         process.env.LEMON_WEB_CAPABILITY_TOKEN_SECRET;
       if (!secret || secret.trim().length === 0) {
-        throw new Error("Missing LEMON_WEB_CAPABILITY_TOKEN_SECRET");
+        throw new HttpJsonError(500, "Missing LEMON_WEB_CAPABILITY_TOKEN_SECRET");
       }
 
-      const signer = createSignedTokenService<{
-        kind: "device-challenge";
-        installId: string;
-        challengeId: string;
-        iat: number;
-        exp: number;
-      }>({
+      // Keep the challenge token format aligned with the verifier in /api/device/session.
+      const tokenService = createCapabilityTokenService({
         secret: secret.trim(),
+        challengeTokenTtlSeconds: options.ttlSeconds ?? 5 * 60,
       });
 
       const current = Date.now();
       const ttlSeconds = options.ttlSeconds ?? 5 * 60;
-      const challenge = signer.sign({
-        kind: "device-challenge",
+      const challenge = tokenService.signChallengeToken({
         installId,
         challengeId: randomUUID(),
-        iat: Math.floor(current / 1000),
-        exp: Math.floor((current + ttlSeconds * 1000) / 1000),
       });
 
       return jsonResponse(
@@ -83,9 +80,19 @@ export function createDeviceChallengeRoute(options: DeviceChallengeRouteOptions 
       );
     } catch (error) {
       if (error instanceof HttpJsonError) {
+        console.error("[LemonWebDeviceChallengeRoute] Request failed", {
+          stage,
+          status: error.status,
+          message: error.message,
+          installId,
+        });
         return jsonErrorResponse(error);
       }
-      console.error("[LemonWebDeviceChallengeRoute] Unhandled failure", { error });
+      console.error("[LemonWebDeviceChallengeRoute] Unhandled failure", {
+        stage,
+        error,
+        installId,
+      });
       return jsonResponse({ error: "Internal challenge error" }, 500);
     }
   };

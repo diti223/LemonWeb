@@ -5,7 +5,7 @@
       "type": "node",
       "request": "attach",
       "name": "Attach to Astro",
-      "port": 9229,
+      "port": 4321,
       "restart": true,
       "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
     },
@@ -16,7 +16,24 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:debug"],
       "cwd": "${workspaceFolder}",
-      "port": 9229,
+      "port": 4321,
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "envFile": "${workspaceFolder}/.env.local"
+    },
+    {
+      "name": "Debug Astro",
+      "type": "node-terminal", // 👈 This is the magic part
+      "request": "launch",
+      "command": "npm run dev:debug", // Use 'command' instead of 'runtimeArgs'
+      "cwd": "${workspaceFolder}",
+      "envFile": "${workspaceFolder}/.env.local"
+    },
+    {
+      "type": "node",
+      "request": "attach",
+      "name": "Attach to Astro (9229)",
+      "port": 9229, // Matches your package.json script
+      "restart": true,
       "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
     }
   ]

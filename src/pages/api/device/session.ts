@@ -41,8 +41,11 @@ interface DeviceSessionRequestBody {
 
 export function createDeviceSessionRoute(input: DeviceSessionRouteInput = {}): APIRoute {
   return async ({ request }) => {
+    let body: DeviceSessionRequestBody | undefined;
+    let stage = "parse";
     try {
-      const body = await parseBody(request);
+      body = await parseBody(request);
+      stage = "rate-limit";
       const rateLimited = await maybeRateLimit(body.installId, request, input);
       if (rateLimited) {
         return rateLimited;
@@ -50,22 +53,39 @@ export function createDeviceSessionRoute(input: DeviceSessionRouteInput = {}): A
 
       if (typeof input !== "function") {
         if (body.challenge) {
+          stage = "challenge-validation";
           validateChallengeIfProvided(body, input);
         }
         if (body.proof) {
+          stage = "proof-validation";
           validateProofIfProvided(body, input);
         }
+        stage = "issue-session";
         return jsonResponse(issueSimpleSession(body.installId, input), 200);
       }
 
+      stage = "device-session-service";
       const deviceSessions = resolveDeviceSessions(input);
       const result = await deviceSessions.issueSession(body);
       return jsonResponse(result, 200);
     } catch (error) {
       if (error instanceof HttpJsonError) {
+        console.error("[LemonWebDeviceSessionRoute] Request failed", {
+          stage,
+          status: error.status,
+          message: error.message,
+          installId: body?.installId,
+          proofKind: body?.proof?.kind,
+          hasChallenge: Boolean(body?.challenge),
+          hasKeyId: Boolean(body?.keyId),
+        });
         return jsonErrorResponse(error);
       }
-      console.error("[LemonWebDeviceSessionRoute] Unhandled failure", { error });
+      console.error("[LemonWebDeviceSessionRoute] Unhandled failure", {
+        stage,
+        error,
+        installId: body?.installId,
+      });
       return jsonResponse({ error: "Internal session error" }, 500);
     }
   };
