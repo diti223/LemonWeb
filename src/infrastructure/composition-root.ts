@@ -7,6 +7,13 @@ import { createPublishSystemCatalogUseCase, type PublishSystemCatalogUseCase } f
 import { createUnpublishRecipeUseCase, type UnpublishRecipeUseCase } from "../application/unpublish-recipe.ts";
 import { createUploadRecipeImageUseCase, type UploadRecipeImageUseCase } from "../application/upload-recipe-image.ts";
 import { createExtractRecipeUseCase, type ExtractRecipeUseCase } from "../application/extract-recipe.ts";
+import {
+  createGetOnboardingProfileUseCase,
+  createSaveOnboardingProfileUseCase,
+  type GetOnboardingProfileUseCase,
+  type OnboardingProfileStore,
+  type SaveOnboardingProfileUseCase,
+} from "../application/onboarding-profile.ts";
 import { createRecipePublishingPolicy } from "../domain/publishing-policy.ts";
 import type {
   Clock,
@@ -23,6 +30,8 @@ import { BlobRecipeRepository } from "./blob-recipe-repository.ts";
 import { BlobSystemCatalogRepository } from "./blob-system-catalog-repository.ts";
 import { SystemClock } from "./system-clock.ts";
 import { createRecipeHtmlExtractor, fetchHtml } from "./recipe-html-extractor.ts";
+import { createVercelKvStore } from "./kv-store.ts";
+import { createKeyValueOnboardingProfileStore } from "./onboarding-profile-store.ts";
 
 const DEFAULT_SITE_URL = "https://recipes.lemonnutrition.eu";
 
@@ -38,6 +47,8 @@ export interface LemonWebApplication {
   readonly publishSystemCatalog: PublishSystemCatalogUseCase;
   readonly extractAuthenticator: RequestAuthenticator;
   readonly extractRecipe: ExtractRecipeUseCase;
+  readonly saveOnboardingProfile: SaveOnboardingProfileUseCase;
+  readonly getOnboardingProfile: GetOnboardingProfileUseCase;
 }
 
 export interface LemonWebApplicationDependencies {
@@ -50,6 +61,7 @@ export interface LemonWebApplicationDependencies {
   readonly extractAuthenticator?: RequestAuthenticator;
   readonly htmlExtractor?: RecipeHtmlExtractor;
   readonly htmlFetcher?: (url: string) => Promise<string>;
+  readonly onboardingProfileStore?: OnboardingProfileStore;
 }
 
 export function createLemonWebApplication(
@@ -67,6 +79,8 @@ export function createLemonWebApplication(
     createBearerRequestAuthenticator(readEnv("EXTRACT_API_KEY"));
   const htmlExtractor = dependencies.htmlExtractor ?? createRecipeHtmlExtractor();
   const htmlFetcher = dependencies.htmlFetcher ?? fetchHtml;
+  const onboardingProfileStore =
+    dependencies.onboardingProfileStore ?? createKeyValueOnboardingProfileStore(createVercelKvStore());
 
   return {
     requestAuthenticator,
@@ -84,6 +98,11 @@ export function createLemonWebApplication(
     publishSystemCatalog: createPublishSystemCatalogUseCase(systemCatalogRepository, clock),
     extractAuthenticator,
     extractRecipe: createExtractRecipeUseCase({ fetchHtml: htmlFetcher, extractor: htmlExtractor }),
+    saveOnboardingProfile: createSaveOnboardingProfileUseCase({
+      store: onboardingProfileStore,
+      now: () => clock.now(),
+    }),
+    getOnboardingProfile: createGetOnboardingProfileUseCase({ store: onboardingProfileStore }),
   };
 }
 

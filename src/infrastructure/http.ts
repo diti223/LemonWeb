@@ -3,6 +3,7 @@ import type { ExtractRecipeCommand } from "../domain/extracted-recipe.ts";
 
 const MAX_RECIPE_PAYLOAD_BYTES = 1_048_576;
 const MAX_IMAGE_SIZE = 5 * 1_024 * 1_024;
+const MAX_ONBOARDING_PROFILE_PAYLOAD_BYTES = 32 * 1_024;
 
 export class HttpJsonError extends Error {
   readonly status: number;
@@ -80,6 +81,15 @@ export async function parseExtractRecipeRequest(request: Request): Promise<Extra
     throw new HttpJsonError(400, "Missing or invalid field: url");
   }
   return { url: rawUrl };
+}
+
+export async function parseSaveOnboardingProfileRequest(
+  request: Request,
+): Promise<{ snapshot: Record<string, unknown> }> {
+  enforceContentLengthLimit(request, MAX_ONBOARDING_PROFILE_PAYLOAD_BYTES, "Payload too large");
+
+  const snapshot = await parseJsonBody(request);
+  return { snapshot };
 }
 
 export async function parseUnpublishRecipeRequest(

@@ -1,6 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
-export type CapabilityScope = "ai:text" | "ai:image" | "extract" | "publish" | "images:write" | "recipes:delete" | "system-catalog:write";
+export type CapabilityScope = "ai:text" | "ai:image" | "extract" | "publish" | "images:write" | "recipes:delete" | "system-catalog:write" | "profile:write";
 
 export interface CapabilityTokenClaims {
   installId: string;
@@ -172,6 +172,7 @@ function readScopes(value: unknown): CapabilityScope[] | null {
     "images:write",
     "recipes:delete",
     "system-catalog:write",
+    "profile:write",
   ];
   const scopes = value.filter((scope): scope is CapabilityScope => {
     return typeof scope === "string" && allowedScopes.includes(scope as CapabilityScope);

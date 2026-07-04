@@ -78,7 +78,7 @@ describe("POST /api/device/session", () => {
     const body = await response.json();
     expect(body.installId).toBe("install-123");
     expect(body.token).toBeTruthy();
-    expect(body.scopes).toEqual(expect.arrayContaining(["ai:text", "extract", "publish", "recipes:delete", "images:write", "ai:image"]));
+    expect(body.scopes).toEqual(expect.arrayContaining(["ai:text", "extract", "publish", "recipes:delete", "images:write", "profile:write", "ai:image"]));
   });
 
   it("rejects debug attestation in production mode", async () => {
@@ -152,7 +152,7 @@ describe("POST /api/device/session", () => {
     const body = await response.json();
     expect(body.installId).toBe("allowed-install");
     expect(body.token).toBeTruthy();
-    expect(body.scopes).toEqual(expect.arrayContaining(["ai:text", "extract", "publish", "recipes:delete", "images:write", "ai:image"]));
+    expect(body.scopes).toEqual(expect.arrayContaining(["ai:text", "extract", "publish", "recipes:delete", "images:write", "profile:write", "ai:image"]));
   });
 
   it("returns 401 when the challenge does not verify", async () => {

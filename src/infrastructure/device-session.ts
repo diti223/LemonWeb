@@ -168,6 +168,7 @@ export function defaultScopesForInstall(
     "publish",
     "recipes:delete",
     "images:write",
+    "profile:write",
   ];
 
   if (allowlist?.has(installId)) {
