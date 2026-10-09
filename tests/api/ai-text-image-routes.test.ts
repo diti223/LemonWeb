@@ -20,6 +20,52 @@ afterEach(() => {
 });
 
 describe("/api/ai/text", () => {
+  it("routes GPT-6 Luna through Responses with the requested low reasoning effort", async () => {
+    const fetchSpy = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe("https://api.openai.com/v1/responses");
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      expect(body.model).toBe("gpt-6-luna");
+      expect(body.reasoning).toEqual({ effort: "low" });
+      return new Response(JSON.stringify({
+        id: "resp-luna-123",
+        model: "gpt-6-luna",
+        output: [{
+          type: "message",
+          role: "assistant",
+          content: [{ type: "output_text", text: "{\"answer\":\"ok\"}" }],
+        }],
+        usage: { input_tokens: 5, output_tokens: 7, total_tokens: 12 },
+      }), { status: 200, headers: { "content-type": "application/json" } });
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const handler = createTextAIGatewayRoute();
+    const response = await handler({
+      request: new Request("https://recipes.lemonnutrition.eu/api/ai/text", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          Authorization: `Bearer ${makeCapabilityToken("install-123", ["ai:text"])}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-6-luna",
+          messages: [{ role: "user", content: "Hello" }],
+          format: "json",
+          reasoningEffort: "low",
+        }),
+      }),
+    } as any);
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({
+      requestedModel: "gpt-6-luna",
+      resolvedModel: "gpt-6-luna",
+      fallbackUsed: false,
+      providerRequestID: "resp-luna-123",
+    });
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("normalizes OpenAI responses into the app-facing AIResponse shape", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(String(input)).toBe("https://api.openai.com/v1/responses");

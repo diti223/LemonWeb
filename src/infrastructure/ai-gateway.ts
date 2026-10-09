@@ -27,7 +27,7 @@ interface TextRequestBody {
   model: string;
   messages: GatewayMessage[];
   format: "text" | "json";
-  reasoningEffort?: "minimal" | "low" | "medium" | "high";
+  reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high";
   promptCache?: {
     key: string;
     retention?: "inMemory" | "twentyFourHours";
@@ -327,7 +327,7 @@ function buildTextUpstreamBody(provider: TextProvider, body: TextRequestBody): R
     };
   }
 
-  if (body.model.startsWith("gpt-5")) {
+  if (bodyModelIsResponses(body.model)) {
     return {
       model: body.model,
       reasoning: body.reasoningEffort ? { effort: body.reasoningEffort } : undefined,
@@ -418,7 +418,7 @@ function resolveTextProvider(model: string): TextProvider {
 }
 
 function bodyModelIsResponses(model: string): boolean {
-  return /^gpt-5/.test(model);
+  return /^gpt-(?:5|6)/.test(model);
 }
 
 async function parseTextBody(request: Request): Promise<TextRequestBody> {
@@ -487,8 +487,8 @@ function parseFormat(value: unknown): "text" | "json" {
   return "json";
 }
 
-function parseReasoningEffort(value: unknown): "minimal" | "low" | "medium" | "high" | undefined {
-  if (value === "minimal" || value === "low" || value === "medium" || value === "high") {
+function parseReasoningEffort(value: unknown): "none" | "minimal" | "low" | "medium" | "high" | undefined {
+  if (value === "none" || value === "minimal" || value === "low" || value === "medium" || value === "high") {
     return value;
   }
   return undefined;
