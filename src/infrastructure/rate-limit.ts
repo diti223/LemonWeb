@@ -1,6 +1,9 @@
 import { createMemoryKvStore, createVercelKvStore, createRedisStore, type KeyValueStore } from "./kv-store.ts";
 import { toUnixSeconds } from "./signed-token.ts";
 
+const memoryRateLimitFallback = createMemoryKvStore();
+let defaultRateLimitStore: KeyValueStore | undefined;
+
 export interface RateLimitQuota {
   readonly limit: number;
   readonly windowSeconds: number;
@@ -135,11 +138,20 @@ export function createVercelKvRateLimiter(store?: KeyValueStore): RateLimiter {
 }
 
 function createDefaultRateLimitStore(): KeyValueStore {
+  if (defaultRateLimitStore) {
+    return defaultRateLimitStore;
+  }
+
   // Try Redis first (supports REDIS_URL)
   const hasRedisUrl = Boolean(readEnv("REDIS_URL"));
   if (hasRedisUrl) {
     try {
-      return createRedisStore();
+      defaultRateLimitStore = createFailoverKeyValueStore(
+        createRedisStore(),
+        memoryRateLimitFallback,
+        "Redis",
+      );
+      return defaultRateLimitStore;
     } catch (error) {
       console.warn("Failed to create Redis store, falling back to Vercel KV or memory:", error);
     }
@@ -148,11 +160,44 @@ function createDefaultRateLimitStore(): KeyValueStore {
   // Fall back to Vercel KV
   const hasVercelKvConfiguration = Boolean(readEnv("KV_REST_API_URL") && readEnv("KV_REST_API_TOKEN"));
   if (hasVercelKvConfiguration) {
-    return createVercelKvStore();
+    defaultRateLimitStore = createVercelKvStore();
+    return defaultRateLimitStore;
   }
 
   // Fall back to in-memory
-  return createMemoryKvStore();
+  defaultRateLimitStore = memoryRateLimitFallback;
+  return defaultRateLimitStore;
+}
+
+export function createFailoverKeyValueStore(
+  primary: KeyValueStore,
+  fallback: KeyValueStore,
+  primaryName: string,
+): KeyValueStore {
+  let activeStore = primary;
+
+  async function run<T>(operation: (store: KeyValueStore) => Promise<T>): Promise<T> {
+    try {
+      return await operation(activeStore);
+    } catch (error) {
+      if (activeStore !== primary) {
+        throw error;
+      }
+
+      activeStore = fallback;
+      console.warn(`${primaryName} rate-limit store failed; using in-memory fallback for this runtime:`, error);
+      return operation(fallback);
+    }
+  }
+
+  return {
+    get: <T>(key: string) => run((store) => store.get<T>(key)),
+    set: <T>(key: string, value: T, options?: { readonly ex?: number }) =>
+      run((store) => store.set(key, value, options)),
+    del: (key: string) => run((store) => store.del(key)),
+    incr: (key: string) => run((store) => store.incr(key)),
+    expire: (key: string, seconds: number) => run((store) => store.expire(key, seconds)),
+  };
 }
 
 function readEnv(name: string): string | undefined {
