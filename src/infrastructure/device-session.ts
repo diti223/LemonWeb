@@ -113,7 +113,10 @@ export function createDeviceSessionService(options: DeviceSessionServiceOptions)
 
         const assertion = options.appAttest.verifyAssertion({
           assertion: input.proof.assertion,
-          payload: assertionPayload(input.installId, input.challenge, input.keyId),
+          // Match the exact UTF-8 challenge bytes used by the iOS client for
+          // both attestKey and generateAssertion. The signed challenge already
+          // binds this proof to the install ID and expires server-side.
+          payload: input.challenge,
           publicKey: enrollment.publicKey,
           bundleIdentifier: options.bundleIdentifier,
           teamIdentifier: options.teamIdentifier,
@@ -149,8 +152,8 @@ export function createDeviceSessionService(options: DeviceSessionServiceOptions)
 
 export function createKeyValueDeviceSessionStore(store: KeyValueStore): DeviceSessionStore {
   return {
-    getEnrollment(installId) {
-      return store.get<DeviceEnrollmentRecord>(deviceEnrollmentKey(installId));
+    async getEnrollment(installId) {
+      return (await store.get<DeviceEnrollmentRecord>(deviceEnrollmentKey(installId))) ?? undefined;
     },
     async saveEnrollment(installId, record) {
       await store.set(deviceEnrollmentKey(installId), record);
@@ -176,15 +179,6 @@ export function defaultScopesForInstall(
   }
 
   return scopes;
-}
-
-export function assertionPayload(installId: string, challenge: string, keyId: string): string {
-  return JSON.stringify({
-    installId,
-    challenge,
-    keyId,
-    proofType: "assertion",
-  });
 }
 
 export function deviceEnrollmentKey(installId: string): string {

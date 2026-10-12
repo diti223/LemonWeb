@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createCapabilityTokenService } from "../../src/infrastructure/auth.ts";
+import { SignedTokenError } from "../../src/infrastructure/signed-token.ts";
 import { TEST_CAPABILITY_SECRET } from "../support/capability-token-fixtures.ts";
 import { createDeviceChallengeRoute } from "../../src/pages/api/device/challenge.ts";
 import { createDeviceSessionRoute } from "../../src/pages/api/device/session.ts";
@@ -47,6 +48,84 @@ function makeChallenge(installId: string): string {
 }
 
 describe("POST /api/device/session", () => {
+  it("rejects incomplete or invalid challenges before issuing a service session", async () => {
+    const issueSession = vi.fn(async () => {
+      throw new SignedTokenError("Invalid token");
+    });
+    const handler = createDeviceSessionRoute(() => ({
+      deviceSessions: { issueSession } as any,
+      rateLimiter: allowAllRateLimiter as any,
+    }));
+
+    const missingProofResponse = await handler({
+      request: new Request("https://recipes.lemonnutrition.eu/api/device/session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ installId: "install-123", challenge: "signed-challenge", keyId: "key-1" }),
+      }),
+    } as any);
+    expect(missingProofResponse.status).toBe(401);
+    expect(issueSession).not.toHaveBeenCalled();
+
+    const invalidChallengeResponse = await handler({
+      request: new Request("https://recipes.lemonnutrition.eu/api/device/session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          installId: "install-123",
+          challenge: "invalid-challenge",
+          keyId: "key-1",
+          proof: { kind: "assertion", assertion: "assertion-data" },
+        }),
+      }),
+    } as any);
+    expect(invalidChallengeResponse.status).toBe(401);
+    expect(issueSession).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a request without a signed challenge", async () => {
+    const handler = createDeviceSessionRoute({
+      tokenSecret: TEST_CAPABILITY_SECRET,
+      challengeSecret: TEST_CAPABILITY_SECRET,
+      rateLimiter: allowAllRateLimiter as any,
+      allowDevelopmentEnvironment: true,
+    });
+
+    const response = await handler({
+      request: new Request("https://recipes.lemonnutrition.eu/api/device/session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          installId: "install-123",
+          proof: { kind: "debug-attestation", attestation: "debug-attestation-token" },
+        }),
+      }),
+    } as any);
+
+    expect(response.status).toBe(401);
+  });
+
+  it("rejects a request without device attestation proof", async () => {
+    const handler = createDeviceSessionRoute({
+      tokenSecret: TEST_CAPABILITY_SECRET,
+      challengeSecret: TEST_CAPABILITY_SECRET,
+      rateLimiter: allowAllRateLimiter as any,
+    });
+
+    const response = await handler({
+      request: new Request("https://recipes.lemonnutrition.eu/api/device/session", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          installId: "install-123",
+          challenge: makeChallenge("install-123"),
+        }),
+      }),
+    } as any);
+
+    expect(response.status).toBe(401);
+  });
+
   it("accepts debug attestation in development and issues a session", async () => {
     const handler = createDeviceSessionRoute({
       tokenSecret: TEST_CAPABILITY_SECRET,

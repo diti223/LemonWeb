@@ -5,7 +5,56 @@ import { createFailoverKeyValueStore, createVercelKvRateLimiter } from "../../sr
 import { TEST_CAPABILITY_SECRET } from "../support/capability-token-fixtures.ts";
 
 describe("GET /api/device/challenge", () => {
-  it("issues a challenge after Redis fails and the rate limiter switches to memory", async () => {
+  it("returns only the enrollment key ID for the requested install", async () => {
+    const getEnrollment = vi.fn(async (installId: string) => ({
+      keyId: `key-for-${installId}`,
+    }));
+    const handler = createDeviceChallengeRoute({
+      secret: TEST_CAPABILITY_SECRET,
+      rateLimiter: { consume: vi.fn(async () => ({ allowed: true })) } as any,
+      getEnrollment,
+    });
+
+    const response = await handler({
+      request: new Request("https://recipes.lemonnutrition.eu/api/device/challenge?installId=install-123"),
+    } as any);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      installId: "install-123",
+      enrolledKeyId: "key-for-install-123",
+    });
+    expect(getEnrollment).toHaveBeenCalledExactlyOnceWith("install-123");
+  });
+
+  it("surfaces enrollment-store failures instead of treating them as no enrollment", async () => {
+    const getEnrollment = vi.fn(async () => {
+      throw new Error("Redis unavailable");
+    });
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const handler = createDeviceChallengeRoute({
+      secret: TEST_CAPABILITY_SECRET,
+      rateLimiter: { consume: vi.fn(async () => ({ allowed: true })) } as any,
+      getEnrollment,
+    });
+
+    try {
+      const response = await handler({
+        request: new Request("https://recipes.lemonnutrition.eu/api/device/challenge?installId=install-123"),
+      } as any);
+
+      expect(response.status).toBe(500);
+      await expect(response.json()).resolves.toEqual({ error: "Internal challenge error" });
+      expect(log).toHaveBeenCalledWith(
+        "[LemonWebDeviceChallengeRoute] Unhandled failure",
+        expect.objectContaining({ stage: "enrollment-check", installId: "install-123" }),
+      );
+    } finally {
+      log.mockRestore();
+    }
+  });
+
+  it("issues a challenge after rate-limit Redis fails when enrollment storage is healthy", async () => {
     const primary = {
       get: vi.fn(async () => null),
       set: vi.fn(async () => undefined),
@@ -22,6 +71,7 @@ describe("GET /api/device/challenge", () => {
     const handler = createDeviceChallengeRoute({
       secret: TEST_CAPABILITY_SECRET,
       rateLimiter: createVercelKvRateLimiter(store),
+      getEnrollment: vi.fn(async () => undefined),
     });
 
     try {

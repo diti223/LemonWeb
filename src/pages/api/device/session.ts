@@ -1,9 +1,10 @@
 import type { APIRoute } from "astro";
 import { createCapabilityTokenService } from "../../../infrastructure/auth.ts";
 import { createNodeAppAttestVerifier, type AppAttestProofVerifier } from "../../../infrastructure/app-attest.ts";
-import { createDeviceSessionService, defaultScopesForInstall, createKeyValueDeviceSessionStore, type DeviceSessionService } from "../../../infrastructure/device-session.ts";
+import { defaultScopesForInstall, type DeviceSessionRequest, type DeviceSessionResponse, type DeviceSessionService } from "../../../infrastructure/device-session.ts";
+import { createDefaultDeviceSessionBackend, createDefaultDeviceSessionService, type DeviceSessionBackend } from "../../../infrastructure/device-session-backend.ts";
 import { HttpJsonError, jsonErrorResponse, jsonResponse } from "../../../infrastructure/http.ts";
-import { createMemoryKvStore, createVercelKvStore } from "../../../infrastructure/kv-store.ts";
+import { SignedTokenError } from "../../../infrastructure/signed-token.ts";
 import { buildRateLimitKey, createVercelKvRateLimiter, type RateLimiter } from "../../../infrastructure/rate-limit.ts";
 
 export const prerender = false;
@@ -22,11 +23,6 @@ export interface DeviceSessionRouteOptions {
   readonly allowDevelopmentEnvironment?: boolean;
 }
 
-export interface DeviceSessionBackend {
-  readonly deviceSessions: DeviceSessionService;
-  readonly rateLimiter?: RateLimiter;
-}
-
 type DeviceSessionRouteInput = DeviceSessionRouteOptions | (() => DeviceSessionBackend);
 
 interface DeviceSessionRequestBody {
@@ -42,31 +38,38 @@ interface DeviceSessionRequestBody {
 export function createDeviceSessionRoute(input: DeviceSessionRouteInput = {}): APIRoute {
   return async ({ request }) => {
     let body: DeviceSessionRequestBody | undefined;
+    let backend: DeviceSessionBackend | undefined;
     let stage = "parse";
     try {
       body = await parseBody(request);
+      backend = typeof input === "function" ? input() : undefined;
       stage = "rate-limit";
-      const rateLimited = await maybeRateLimit(body.installId, request, input);
+      const rateLimiter = backend?.rateLimiter ?? resolveRateLimiter(input);
+      const rateLimited = await maybeRateLimit(body.installId, request, rateLimiter);
       if (rateLimited) {
         return rateLimited;
       }
 
       if (typeof input !== "function") {
-        if (body.challenge) {
-          stage = "challenge-validation";
-          validateChallengeIfProvided(body, input);
-        }
-        if (body.proof) {
-          stage = "proof-validation";
-          validateProofIfProvided(body, input);
-        }
+        stage = "challenge-validation";
+        validateChallengeIfProvided(body, input);
+        stage = "proof-validation";
+        validateProofIfProvided(body, input);
         stage = "issue-session";
         return jsonResponse(issueSimpleSession(body.installId, input), 200);
       }
 
       stage = "device-session-service";
-      const deviceSessions = resolveDeviceSessions(input);
-      const result = await deviceSessions.issueSession(body);
+      const deviceSessions = backend?.deviceSessions ?? resolveDeviceSessions(input);
+      let result: DeviceSessionResponse;
+      try {
+        result = await deviceSessions.issueSession(requireDeviceSessionProof(body));
+      } catch (error) {
+        if (error instanceof SignedTokenError) {
+          throw new HttpJsonError(401, "Unauthorized");
+        }
+        throw error;
+      }
       return jsonResponse(result, 200);
     } catch (error) {
       if (error instanceof HttpJsonError) {
@@ -91,14 +94,21 @@ export function createDeviceSessionRoute(input: DeviceSessionRouteInput = {}): A
   };
 }
 
-export const POST = createDeviceSessionRoute();
+// Deployed builds use the enrolled device service. Astro's local dev server keeps
+// the existing debug-attestation flow, but it still requires a signed challenge.
+const productionDeviceSessionRoute = createDeviceSessionRoute(() => createDefaultDeviceSessionBackend());
+const localDeviceSessionRoute = createDeviceSessionRoute({
+  allowDevelopmentEnvironment: readEnvBool("APP_ATTEST_ALLOW_DEVELOPMENT"),
+});
+
+export const POST: APIRoute = (context) =>
+  isLocalDevelopment() ? localDeviceSessionRoute(context) : productionDeviceSessionRoute(context);
 
 async function maybeRateLimit(
   installId: string,
   request: Request,
-  input: DeviceSessionRouteInput,
+  rateLimiter: RateLimiter,
 ): Promise<Response | undefined> {
-  const rateLimiter = resolveRateLimiter(input);
   const now = Date.now();
   const installDecision = await rateLimiter.consume(
     buildRateLimitKey("device:session", installId, 60 * 60, now),
@@ -142,38 +152,16 @@ function resolveDeviceSessions(input: DeviceSessionRouteInput): DeviceSessionSer
   return createDefaultDeviceSessionService(input);
 }
 
-function createDefaultDeviceSessionService(options: DeviceSessionRouteOptions): DeviceSessionService {
-  const sessionSecret = readSecret(
-    options.sessionTokenSecret ??
-      options.tokenSecret ??
-      readEnv("LEMON_WEB_CAPABILITY_TOKEN_SECRET") ??
-      "",
-  );
-  const challengeSecret = readSecret(options.challengeSecret ?? sessionSecret);
-  const bundleIdentifier = readOptionalEnv("APP_ATTEST_BUNDLE_IDENTIFIER", options.bundleIdentifier);
-  const teamIdentifier = readOptionalEnv("APP_ATTEST_TEAM_IDENTIFIER", options.teamIdentifier);
-  const allowDevelopmentEnvironment =
-    options.allowDevelopmentEnvironment ?? readEnvBool("APP_ATTEST_ALLOW_DEVELOPMENT");
-  const allowlistedInstallIds = options.allowlistedInstallIds ?? readAllowlist("AI_IMAGE_ALLOWLIST_INSTALL_IDS");
-  const appAttestVerifier = options.appAttestVerifier ?? createNodeAppAttestVerifier();
-  const kvStore = hasVercelKvConfiguration() ? createVercelKvStore() : createMemoryKvStore();
-
-  return createDeviceSessionService({
-    tokenService: createCapabilityTokenService({ secret: challengeSecret }),
-    sessionTokenSecret: sessionSecret,
-    enrollmentStore: createKeyValueDeviceSessionStore(kvStore),
-    appAttest: appAttestVerifier,
-    bundleIdentifier,
-    teamIdentifier,
-    allowDevelopmentEnvironment,
-    allowlistedInstallIds,
-    capabilityTokenTtlSeconds: options.capabilityTokenTtlSeconds,
-    challengeTtlSeconds: options.ttlSeconds,
-  });
-}
-
-function hasVercelKvConfiguration(): boolean {
-  return Boolean(readEnv("KV_REST_API_URL") && readEnv("KV_REST_API_TOKEN"));
+function requireDeviceSessionProof(body: DeviceSessionRequestBody): DeviceSessionRequest {
+  if (!body.challenge || !body.keyId || !body.proof || body.proof.kind === "debug-attestation") {
+    throw new HttpJsonError(401, "Unauthorized");
+  }
+  return {
+    installId: body.installId,
+    challenge: body.challenge,
+    keyId: body.keyId,
+    proof: body.proof,
+  };
 }
 
 async function parseBody(request: Request): Promise<DeviceSessionRequestBody> {
@@ -236,7 +224,7 @@ function optionalProof(value: unknown): DeviceSessionRequestBody["proof"] {
 
 function validateChallengeIfProvided(body: DeviceSessionRequestBody, options: DeviceSessionRouteOptions): void {
   if (!body.challenge) {
-    return;
+    throw new HttpJsonError(401, "Unauthorized");
   }
 
   const secret = options.challengeSecret?.trim() || options.tokenSecret?.trim() || options.sessionTokenSecret?.trim() || readEnv("LEMON_WEB_CAPABILITY_TOKEN_SECRET") || "";
@@ -260,7 +248,7 @@ function validateChallengeIfProvided(body: DeviceSessionRequestBody, options: De
 
 function validateProofIfProvided(body: DeviceSessionRequestBody, options: DeviceSessionRouteOptions): void {
   if (!body.proof) {
-    return;
+    throw new HttpJsonError(401, "Unauthorized");
   }
 
   const bundleIdentifier = readOptionalEnv("APP_ATTEST_BUNDLE_IDENTIFIER", options.bundleIdentifier);
@@ -343,12 +331,8 @@ function readEnv(name: string): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function readSecret(value: string): string {
-  const trimmed = value.trim();
-  if (trimmed.length > 0) {
-    return trimmed;
-  }
-  throw new Error("Missing LEMON_WEB_CAPABILITY_TOKEN_SECRET");
+function readEnvBool(name: string): boolean {
+  return readEnv(name) === "true";
 }
 
 function readOptionalEnv(name: string, override?: string): string {
@@ -356,23 +340,10 @@ function readOptionalEnv(name: string, override?: string): string {
   if (trimmed && trimmed.length > 0) {
     return trimmed;
   }
-
-  const value = readEnv(name);
-  if (!value) {
-    return "";
-  }
-  return value;
+  return readEnv(name) ?? "";
 }
 
-function readEnvBool(name: string): boolean {
-  return readEnv(name) === "true";
-}
-
-function readAllowlist(name: string): ReadonlySet<string> {
-  return new Set(
-    (readEnv(name) ?? "")
-      .split(/[,\n]/)
-      .map((value) => value.trim())
-      .filter(Boolean),
-  );
+function isLocalDevelopment(): boolean {
+  const isAstroDev = (import.meta as { env?: Record<string, unknown> }).env?.DEV === true;
+  return isAstroDev && readEnv("VERCEL_ENV") !== "production";
 }

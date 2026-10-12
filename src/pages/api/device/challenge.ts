@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { createCapabilityTokenService } from "../../../infrastructure/auth.ts";
 import { HttpJsonError, jsonErrorResponse, jsonResponse } from "../../../infrastructure/http.ts";
 import { buildRateLimitKey, createVercelKvRateLimiter, type RateLimiter } from "../../../infrastructure/rate-limit.ts";
+import { createDefaultDeviceSessionBackend } from "../../../infrastructure/device-session-backend.ts";
 
 export const prerender = false;
 
@@ -10,6 +11,7 @@ export interface DeviceChallengeRouteOptions {
   readonly secret?: string;
   readonly ttlSeconds?: number;
   readonly rateLimiter?: RateLimiter;
+  readonly getEnrollment?: (installId: string) => Promise<{ readonly keyId: string } | undefined>;
 }
 
 export function createDeviceChallengeRoute(options: DeviceChallengeRouteOptions = {}): APIRoute {
@@ -70,10 +72,14 @@ export function createDeviceChallengeRoute(options: DeviceChallengeRouteOptions 
         challengeId: randomUUID(),
       });
 
+      stage = "enrollment-check";
+      const enrollment = await options.getEnrollment?.(installId);
+
       return jsonResponse(
         {
           challenge,
           installId,
+          enrolledKeyId: enrollment?.keyId,
           expiresAt: new Date(current + ttlSeconds * 1000).toISOString(),
         },
         200,
@@ -98,7 +104,9 @@ export function createDeviceChallengeRoute(options: DeviceChallengeRouteOptions 
   };
 }
 
-export const GET = createDeviceChallengeRoute();
+export const GET = createDeviceChallengeRoute({
+  getEnrollment: (installId) => createDefaultDeviceSessionBackend().deviceSessions.getEnrollment(installId),
+});
 
 function readEnv(name: string): string | undefined {
   const env = (import.meta as { env?: Record<string, string | undefined> }).env;
