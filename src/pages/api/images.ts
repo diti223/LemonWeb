@@ -9,9 +9,8 @@ export function createUploadImageRoute(
   resolveApplication: typeof createLemonWebApplication = createLemonWebApplication,
 ): APIRoute {
   return async ({ request, url }) => {
-    const application = resolveApplication();
-
     try {
+      const application = resolveApplication();
       const claims = await authorizeCapabilityRequest(request, {
         requiredScope: "images:write",
         rateLimitScope: "images:write",
@@ -35,7 +34,11 @@ export function createUploadImageRoute(
         return jsonErrorResponse(error);
       }
 
-      throw error;
+      console.error("[LemonWebImageUploadRoute] Unhandled upload failure", {
+        error,
+        recipeId: url.searchParams.get("recipeId"),
+      });
+      return jsonResponse({ error: "Internal image upload error" }, 500);
     }
   };
 }

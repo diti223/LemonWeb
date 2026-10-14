@@ -9,10 +9,9 @@ export function createPublishRecipeRoute(
   resolveApplication: typeof createLemonWebApplication = createLemonWebApplication,
 ): APIRoute {
   return async ({ request }) => {
-    const application = resolveApplication();
-
     let publishContext: Record<string, unknown> | undefined;
     try {
+      const application = resolveApplication();
       const claims = await authorizeCapabilityRequest(request, {
         requiredScope: "publish",
         rateLimitScope: "publish",
