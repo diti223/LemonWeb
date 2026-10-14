@@ -153,6 +153,29 @@ describe("/api/ai/text", () => {
 
     expect(response.status).toBe(403);
   });
+
+  it("returns 503 when the selected provider is not configured", async () => {
+    delete process.env.OPENAI_API_KEY;
+    const handler = createTextAIGatewayRoute();
+    const response = await handler({
+      request: new Request("https://recipes.lemonnutrition.eu/api/ai/text", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          Authorization: "Bearer " + makeCapabilityToken("install-123", ["ai:text"]),
+        },
+        body: JSON.stringify({
+          model: "gpt-5.4-mini",
+          messages: [{ role: "user", content: "Hello" }],
+        }),
+      }),
+    } as any);
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      error: "The AI service is not configured",
+    });
+  });
 });
 
 describe("/api/ai/image", () => {

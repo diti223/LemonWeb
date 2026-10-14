@@ -581,7 +581,7 @@ function readEnv(name: string): string | undefined {
 function requireEnv(name: string): string {
   const value = readEnv(name);
   if (!value) {
-    throw new Error(`${name} is required`);
+    throw new HttpJsonError(503, "The AI service is not configured");
   }
   return value;
 }
